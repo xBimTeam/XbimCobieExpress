@@ -62,12 +62,14 @@ namespace Xbim.CobieExpress.IO.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to &lt;?xml version=&quot;1.0&quot;?&gt;
-        ///&lt;ModelMapping xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:xsd=&quot;http://www.w3.org/2001/XMLSchema&quot; Name=&quot;Simple COBie mapping&quot; ListSeparator=&quot;,&quot; PickTableName=&quot;PickLists&quot; xmlns=&quot;http://www.openbim.org/mapping/table/1.0&quot;&gt;
-        ///  &lt;ClassMappings&gt;
-        ///    &lt;ClassMapping Class=&quot;Contact&quot; TableName=&quot;Contact&quot; TableOrder=&quot;0&quot;&gt;
-        ///      &lt;PropertyMappings&gt;
-        ///        &lt;PropertyMapping Header=&quot;Email&quot; Column=&quot;A&quot; Colour=&quot;#FFFF99&quot; Required=&quot;true&quot; MultiRow=&quot;None&quot; DefaultValue=&quot;n/a&quot; Paths=&quot;Email&quot; /&gt;
-        /// [rest of string was truncated]&quot;;.
+        ///&lt;ModelMapping xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:xsd=&quot;http://www.w3.org/2001/XMLSchema&quot; xmlns=&quot;http://www.openbim.org/mapping/table/1.0&quot;
+        ///              Name=&quot;COBie2.4 UK2012&quot; 
+        ///              ListSeparator=&quot;,&quot; 
+        ///              PickTableName=&quot;PickLists&quot; 
+        ///              &gt;
+        ///  &lt;StatusRepresentations&gt;
+        ///    &lt;StatusRepresentation Colour=&quot;#CCC&quot; FontWeight=&quot;Bold&quot; Border=&quot;true&quot; Status=&quot;Header&quot; /&gt;
+        ///    &lt;StatusRepresentation Colour=&quot;#FFFF99&quot; FontWeight=&quot;Normal&quot; Border=&quot;true [rest of string was truncated]&quot;;.
         /// </summary>
         public static string COBieUK2012 {
             get {
