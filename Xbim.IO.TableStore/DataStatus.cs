@@ -1,4 +1,4 @@
-﻿namespace Xbim.IO.TableStore
+﻿namespace Xbim.IO.Table
 {
     public enum DataStatus
     {

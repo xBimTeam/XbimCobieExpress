@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net47;netstandard2.0</TargetFrameworks>
+    <AssemblyName>Xbim.IO.Table</AssemblyName>
+	<RootNamespace>Xbim.IO.Table</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NPOI" Version="2.4.0" />
+    <PackageReference Include="Xbim.Common" Version="5.0.143" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+</Project>

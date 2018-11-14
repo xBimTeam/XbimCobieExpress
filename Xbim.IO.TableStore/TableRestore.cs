@@ -11,7 +11,7 @@ using NPOI.XSSF.UserModel;
 using Xbim.Common;
 using Xbim.Common.Metadata;
 
-namespace Xbim.IO.TableStore
+namespace Xbim.IO.Table
 {
     public partial class TableStore
     {

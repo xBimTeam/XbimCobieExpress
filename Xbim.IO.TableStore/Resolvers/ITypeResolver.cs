@@ -2,7 +2,7 @@
 using NPOI.SS.UserModel;
 using Xbim.Common.Metadata;
 
-namespace Xbim.IO.TableStore.Resolvers
+namespace Xbim.IO.Table.Resolvers
 {
     /// <summary>
     /// Implementatios of ITypeResolver can be used to resolve abstract types when data is being read into object model.

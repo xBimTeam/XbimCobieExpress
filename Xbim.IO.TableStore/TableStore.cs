@@ -13,9 +13,9 @@ using NPOI.XSSF.UserModel;
 using Xbim.Common;
 using Xbim.Common.Exceptions;
 using Xbim.Common.Metadata;
-using Xbim.IO.TableStore.Resolvers;
+using Xbim.IO.Table.Resolvers;
 
-namespace Xbim.IO.TableStore
+namespace Xbim.IO.Table
 {
     public partial class TableStore
     {

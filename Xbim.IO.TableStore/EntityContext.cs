@@ -2,7 +2,7 @@
 using System.Linq;
 using Xbim.Common;
 
-namespace Xbim.IO.TableStore
+namespace Xbim.IO.Table
 {
     public class EntityContext
     {

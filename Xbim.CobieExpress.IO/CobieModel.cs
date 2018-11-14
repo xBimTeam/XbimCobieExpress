@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Xbim.CobieExpress.IO.Resolvers;
 using Xbim.Common;
 using Xbim.Common.Geometry;
@@ -10,7 +11,7 @@ using Xbim.Common.Step21;
 using Xbim.IO;
 using Xbim.IO.Esent;
 using Xbim.IO.Memory;
-using Xbim.IO.TableStore;
+using Xbim.IO.Table;
 
 namespace Xbim.CobieExpress.IO
 {
@@ -72,7 +73,7 @@ namespace Xbim.CobieExpress.IO
             {
                 var db = Path.ChangeExtension(input, ".xbim");
                 var esent = new EsentModel(factory);
-                esent.CreateFrom(input, db, null, true, true, IfcStorageType.Stp);
+                esent.CreateFrom(input, db, null, true, true, StorageType.Stp);
                 return new CobieModel(esent);
             }
 
@@ -86,7 +87,7 @@ namespace Xbim.CobieExpress.IO
             if (esentDB)
             {
                 var esent = new EsentModel(factory);
-                esent.CreateFrom(input, streamSize, IfcStorageType.Stp, "temp.xbim", null, true);
+                esent.CreateFrom(input, streamSize, StorageType.Stp, "temp.xbim", null, true);
                 return new CobieModel(esent);
             }
 
@@ -99,7 +100,7 @@ namespace Xbim.CobieExpress.IO
         {
             if (_esentDB)
             {
-                EsentModel.SaveAs(file, IfcStorageType.Stp);
+                EsentModel.SaveAs(file, StorageType.Stp);
                 return;
             }
 
@@ -202,7 +203,7 @@ namespace Xbim.CobieExpress.IO
         {
             if (_esentDB)
             {
-                EsentModel.SaveAs(file, IfcStorageType.StpZip);
+                EsentModel.SaveAs(file, StorageType.StpZip);
                 return;
             }
 
@@ -219,7 +220,7 @@ namespace Xbim.CobieExpress.IO
             {
                 var db = Path.ChangeExtension(input, ".xcobie");
                 var esent = new EsentModel(factory);
-                esent.CreateFrom(input, db, null, true, true, IfcStorageType.StpZip);
+                esent.CreateFrom(input, db, null, true, true, StorageType.StpZip);
                 return new CobieModel(esent);
             }
 
@@ -303,14 +304,9 @@ namespace Xbim.CobieExpress.IO
         public event NewEntityHandler EntityNew;
         public event ModifiedEntityHandler EntityModified;
         public event DeletedEntityHandler EntityDeleted;
-        public IInverseCache BeginCaching()
+        public IInverseCache BeginInverseCaching()
         {
-            return _model.BeginCaching();
-        }
-
-        public void StopCaching()
-        {
-            _model.StopCaching();
+            return _model.BeginInverseCaching();
         }
 
         public IInverseCache InverseCache
@@ -318,10 +314,14 @@ namespace Xbim.CobieExpress.IO
             get { return _model.InverseCache; }
         }
 
-        public IfcSchemaVersion SchemaVersion
+        public XbimSchemaVersion SchemaVersion
         {
             get { return _model.SchemaVersion; }
         }
+
+        public ILogger Logger { get => _model.Logger; set => _model.Logger = value; }
+
+        public IEntityCache EntityCache => _model.EntityCache;
 
         private void InitEvents()
         {
@@ -412,6 +412,11 @@ namespace Xbim.CobieExpress.IO
             //dispose model if it is disposable
             var dispModel = _model as IDisposable;
             if(dispModel != null) dispModel.Dispose();
+        }
+
+        public IEntityCache BeginEntityCaching()
+        {
+            return _model.BeginEntityCaching();
         }
         #endregion
     }

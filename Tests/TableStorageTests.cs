@@ -13,7 +13,7 @@ using Xbim.Ifc4.Kernel;
 using Xbim.Ifc4.MeasureResource;
 using Xbim.Ifc4.PropertyResource;
 using Xbim.Ifc4.SharedBldgElements;
-using Xbim.IO.TableStore;
+using Xbim.IO.Table;
 
 namespace Xbim.IO.Tests
 {
@@ -91,160 +91,22 @@ namespace Xbim.IO.Tests
         }
 
         [TestMethod]
-        [DeploymentItem("TestFiles\\SampleHouse4.ifc")]
-        public void Ifc4TableStorageTest()
+        [DeploymentItem("TestFiles/LakesideRestaurant.cobieZip")]
+        public void StoreAsXLSX()
         {
-            const string file = "..\\..\\SampleHouseFromIfc.xlsx";
-            var model = IfcStore.Open("SampleHouse4.ifc");
-            var mapping = ModelMapping.Load(Properties.Resources.IFC4SampleMapping);
+            var model = CobieModel.OpenStep21Zip("LakesideRestaurant.cobieZip");
+            //var mapping = GetSimpleMapping();
+            var mapping = GetCobieMapping();
             mapping.Init(model.Metadata);
 
             var w = new Stopwatch();
             w.Start();
-            var storage = new TableStore.TableStore(model, mapping);
-            storage.Store(file);
+            var storage = new TableStore(model, mapping);
+            storage.Store("..\\..\\Lakeside.xlsx");
             w.Stop();
             //Debug.WriteLine(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds);
             Trace.WriteLine(string.Format(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds));
-
-            var loaded = new IO.Memory.MemoryModel(new Ifc4.EntityFactoryIfc4());
-            using (var txn = loaded.BeginTransaction("Import from XLSX"))
-            {
-                storage = new TableStore.TableStore(loaded, mapping);
-                storage.LoadFrom(file);
-                txn.Commit();
-            }
-
         }
-
-        [TestMethod]
-        public void Ifc4PSetsTest()
-        {
-            const string file = "PSetsSample.xlsx";
-            var model = new IO.Memory.MemoryModel(new Ifc4.EntityFactoryIfc4());
-            using (var txn = model.BeginTransaction("Sample data"))
-            {
-                model.EntityNew += entity =>
-                {
-                    var root = entity as IfcRoot;
-                    if (root != null)
-                        root.GlobalId = Guid.NewGuid();
-                };
-                var slab = model.Instances.New<IfcSlab>(s => s.Name = "Tremendous slab");
-                model.Instances.New<IfcRelDefinesByProperties>(r =>
-                {
-                    r.RelatedObjects.Add(slab);
-                    r.RelatingPropertyDefinition = model.Instances.New<IfcPropertySet>(ps =>
-                    {
-                        ps.Name = "Slab properties A";
-                        ps.HasProperties.Add(model.Instances.New<IfcPropertySingleValue>(p =>
-                        {
-                            p.Name = "Property AA";
-                            p.NominalValue = new IfcLengthMeasure(5.5);
-                        }));
-                        ps.HasProperties.Add(model.Instances.New<IfcPropertySingleValue>(p =>
-                        {
-                            p.Name = "Property AB";
-                            p.NominalValue = new IfcLogical(true);
-                        }));
-                    });
-                });
-                model.Instances.New<IfcRelDefinesByProperties>(r =>
-                {
-                    r.RelatedObjects.Add(slab);
-                    r.RelatingPropertyDefinition = model.Instances.New<IfcPropertySet>(ps =>
-                    {
-                        ps.Name = "Slab properties B";
-                        ps.HasProperties.Add(model.Instances.New<IfcPropertySingleValue>(p =>
-                        {
-                            p.Name = "Property BA";
-                            p.NominalValue = new IfcInteger(5);
-                        }));
-                        ps.HasProperties.Add(model.Instances.New<IfcPropertySingleValue>(p =>
-                        {
-                            p.Name = "Property BB";
-                            p.NominalValue = new IfcLabel("LabellebaL");
-                        }));
-                    });
-                });
-                txn.Commit();
-            }
-
-
-            var mapping = ModelMapping.Load(Properties.Resources.IFC4SampleMapping);
-            mapping.Init(model.Metadata);
-
-            var w = new Stopwatch();
-            w.Start();
-            var storage = new TableStore.TableStore(model, mapping);
-            storage.Store(file);
-            w.Stop();
-            //Debug.WriteLine(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds);
-            Trace.WriteLine(string.Format(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds));
-
-            var loaded = new IO.Memory.MemoryModel(new Ifc4.EntityFactoryIfc4());
-            using (var txn = loaded.BeginTransaction("Import from XLSX"))
-            {
-                storage = new TableStore.TableStore(loaded, mapping);
-                storage.LoadFrom(file);
-                txn.Commit();
-            }
-
-            var sl = loaded.Instances.FirstOrDefault<IfcSlab>();
-            Assert.IsNotNull(sl);
-
-            var rels = sl.IsDefinedBy.ToList();
-            Assert.AreEqual(2, rels.Count);
-
-            foreach (var rel in rels)
-            {
-                var pSet = rel.RelatingPropertyDefinition as IfcPropertySet;
-                Assert.IsNotNull(pSet);
-                Assert.IsNotNull(pSet.Name);
-
-                if (pSet.Name == "Slab properties A")
-                {
-                    var propA = pSet.HasProperties.OfType<IfcPropertySingleValue>().First(p => p.Name == "Property AA");
-                    Assert.IsNotNull(propA);
-                    Assert.IsNotNull(propA.NominalValue);
-                    Assert.IsTrue(Math.Abs((IfcLengthMeasure)propA.NominalValue - 5.5) < 1e-9);
-                    var propB = pSet.HasProperties.OfType<IfcPropertySingleValue>().First(p => p.Name == "Property AB");
-                    Assert.IsNotNull(propB);
-                    Assert.IsNotNull(propB.NominalValue);
-                    Assert.IsTrue(((IfcLogical)propB.NominalValue).Equals((IfcLogical)true));
-                }
-                if (pSet.Name == "Slab properties B")
-                {
-                    var propA = pSet.HasProperties.OfType<IfcPropertySingleValue>().First(p => p.Name == "Property BA");
-                    Assert.IsNotNull(propA);
-                    Assert.IsNotNull(propA.NominalValue);
-                    Assert.IsTrue(((IfcInteger)propA.NominalValue).Equals((IfcInteger)5));
-                    var propB = pSet.HasProperties.OfType<IfcPropertySingleValue>().First(p => p.Name == "Property BB");
-                    Assert.IsNotNull(propB);
-                    Assert.IsNotNull(propB.NominalValue);
-                    Assert.IsTrue(((IfcLabel)propB.NominalValue).Equals((IfcLabel)"LabellebaL"));
-                }
-            }
-
-        }
-
-        //[TestMethod]
-        //[DeploymentItem("TestFiles/LakesideRestaurant.cobieZip")]
-        //public void StoreAsXLSX()
-        //{
-        //    var model = CobieModel.OpenStep21Zip("LakesideRestaurant.cobieZip");
-        //    //var mapping = GetSimpleMapping();
-        //    var mapping = GetCobieMapping();
-        //    mapping.Init(model.Metadata);
-
-        //    var w = new Stopwatch();
-        //    w.Start();
-        //    var storage = new TableStore(model, mapping);
-        //    storage.Store("..\\..\\Lakeside.xlsx");
-        //    w.Stop();
-        //    //Debug.WriteLine(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds);
-        //    Trace.WriteLine(string.Format( @"{0}ms to store the data as a table.", w.ElapsedMilliseconds));
-        //}
 
         [TestMethod]
         [DeploymentItem("TestFiles/2016-02-29-Dormitory-COBie.xlsx")]

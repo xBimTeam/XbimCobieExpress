@@ -6,7 +6,7 @@ using Xbim.Common;
 using Xbim.Common.Exceptions;
 using Xbim.Common.Metadata;
 
-namespace Xbim.IO.TableStore
+namespace Xbim.IO.Table
 {
     /// <summary>
     /// This class describes how to represent class as a table

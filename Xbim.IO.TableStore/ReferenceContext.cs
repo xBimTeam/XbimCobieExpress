@@ -7,7 +7,7 @@ using NPOI.SS.UserModel;
 using Xbim.Common;
 using Xbim.Common.Metadata;
 
-namespace Xbim.IO.TableStore
+namespace Xbim.IO.Table
 {
     [DebuggerDisplay("{Segment}")]
     public class ReferenceContext

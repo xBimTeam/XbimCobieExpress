@@ -234,10 +234,10 @@ namespace Xbim.CobieExpress
 		/// <summary>
         /// Gets the Ifc Schema version of the model if this is IFC schema
         /// </summary>
-		public IfcSchemaVersion SchemaVersion { 
+		public XbimSchemaVersion SchemaVersion { 
 			get
 			{
-				return IfcSchemaVersion.Cobie2X4;
+				return XbimSchemaVersion.Cobie2X4;
 			}
 		}
 

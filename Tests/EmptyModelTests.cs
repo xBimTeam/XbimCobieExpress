@@ -1,29 +1,14 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Xbim.Ifc;
-using Xbim.Common.Step21;
-using Xbim.Ifc2x3.SharedBldgElements;
 using Xbim.CobieExpress.IO;
 using Xbim.CobieExpress;
 using System.IO;
+using Xbim.IO.Esent;
 
-namespace Xbim.MemoryModel.Tests
+namespace Xbim.CobieExpress.Tests
 {
     [TestClass]
     public class EmptyModelTests
     {
-        [TestMethod]
-        public void EsentInIfcStoreTest()
-        {
-            using (var model = IfcStore.Create(IfcSchemaVersion.Ifc2X3, XbimStoreType.EsentDatabase))
-            {
-                using (var txn = model.BeginTransaction())
-                {
-                    var wall = model.Instances.New<IfcWall>(w => w.Name = "Wall A");
-                    txn.Commit();
-                }
-            }
-        }
-
         [TestMethod]
         public void EsentInCobieModelTest()
         {
@@ -41,7 +26,7 @@ namespace Xbim.MemoryModel.Tests
         public void EsentInOuterScope()
         {
             //creating esent model in outer scope for better control
-            using (var esent = IO.Esent.EsentModel.CreateModel(new EntityFactoryCobieExpress(), "test2.xbim"))
+            using (var esent = EsentModel.CreateModel(new EntityFactoryCobieExpress(), "test2.xbim"))
             {
                 using (var model = new CobieModel(esent))
                 {

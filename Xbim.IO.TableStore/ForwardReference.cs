@@ -4,7 +4,7 @@ using System.Linq;
 using NPOI.SS.UserModel;
 using Xbim.Common;
 
-namespace Xbim.IO.TableStore
+namespace Xbim.IO.Table
 {
     /// <summary>
     /// This class is used to resolve forward references in the model. It uses configuration from mapping and

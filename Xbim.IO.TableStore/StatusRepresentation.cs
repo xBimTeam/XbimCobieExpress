@@ -1,6 +1,6 @@
 ﻿using System.Xml.Serialization;
 
-namespace Xbim.IO.TableStore
+namespace Xbim.IO.Table
 {
     public class StatusRepresentation
     {

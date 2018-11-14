@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Xbim.CobieExpress;
 using Xbim.CobieExpress.IO;
 using Xbim.Common;
-using Xbim.IO.TableStore;
+using Xbim.IO.Table;
 using Xbim.IO.Xml;
 using Xbim.IO.Xml.BsConf;
 

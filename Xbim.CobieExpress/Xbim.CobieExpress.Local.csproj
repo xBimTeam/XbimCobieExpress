@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net47;netstandard2.0</TargetFrameworks>
+    <AssemblyName>Xbim.CobieExpress</AssemblyName>
+	<RootNamespace>Xbim.CobieExpress</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Xbim.Common" Version="5.0.143" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+</Project>
