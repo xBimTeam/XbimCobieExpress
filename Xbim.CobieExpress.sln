@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.IO.Local"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{A36024FA-B358-46F9-80EE-D65F7C77B2C3}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.Exchanger.Local", "Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.Local.csproj", "{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{A36024FA-B358-46F9-80EE-D65F7C77B2C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A36024FA-B358-46F9-80EE-D65F7C77B2C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A36024FA-B358-46F9-80EE-D65F7C77B2C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
