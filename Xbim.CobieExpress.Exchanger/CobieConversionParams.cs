@@ -1,4 +1,6 @@
-﻿using Xbim.CobieExpress.Exchanger.FilterHelper;
+﻿using System;
+using Xbim.CobieExpress.Exchanger.FilterHelper;
+using Xbim.Common;
 
 namespace XbimExchanger.IfcHelpers
 {
@@ -7,10 +9,8 @@ namespace XbimExchanger.IfcHelpers
     /// </summary>
     public class CobieConversionParams
     {
-        public object Source { get; set; }
-        public string OutputFileName { get; set; }
-        public string TemplateFile { get; set; }
-        public ExportFormatEnum ExportFormat { get; set; }
+        public IModel Source { get; set; }
+        public Func<IModel> NewCobieModel { get; set; }
         public EntityIdentifierMode ExtId { get; set; }
         public SystemExtractionMode SysMode { get; set; }
         public OutPutFilters Filter { get; set; }
@@ -18,6 +18,7 @@ namespace XbimExchanger.IfcHelpers
         /// <summary>
         /// Produce COBie validation log file
         /// </summary>
-        public bool Log { get; set; }        
+        public bool Log { get; set; } 
+        public ReportProgressDelegate ReportProgress { get; set; }
     }
 }

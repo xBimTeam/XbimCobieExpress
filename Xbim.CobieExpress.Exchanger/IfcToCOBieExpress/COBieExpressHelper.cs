@@ -226,7 +226,7 @@ namespace XbimExchanger.IfcToCOBieExpress
 
             //set props
             _configFileName = configurationFile;
-            Filter = filter  ?? new OutPutFilters();
+            Filter = filter  ?? new OutPutFilters(Logger);
             _model = exchanger.SourceRepository;
             Target = exchanger.TargetRepository;
             Exchanger = exchanger;

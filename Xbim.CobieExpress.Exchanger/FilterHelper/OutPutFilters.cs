@@ -12,7 +12,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
 {
     public class OutPutFilters
     {
-        private static readonly ILogger Log = LogManager.GetLogger("Xbim.CobieExpress.Exchanger.FilterHelper");
+        private readonly ILogger _log;
 
         #region Properties
 
@@ -95,8 +95,9 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <summary>
         /// Empty constructor for Serialize
         /// </summary>
-        public OutPutFilters()
+        public OutPutFilters(ILogger logger)
         {
+            _log = logger;
             //will flip filter result from true to false
             FlipResult = false;
 
@@ -123,13 +124,13 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Constructor for default set configFileName = null, or passed in configuration file path
         /// </summary>
         /// <param name="configFileName"></param>
-        public OutPutFilters(string configFileName, RoleFilter roleFlags, ImportSet setsToImport = ImportSet.All) : this()
+        public OutPutFilters(string configFileName, ILogger logger, RoleFilter roleFlags, ImportSet setsToImport = ImportSet.All) : this(logger)
         {
             AppliedRoles = roleFlags;
             FiltersHelperInit(configFileName, setsToImport);
         }
 
-        public OutPutFilters(RoleFilter roleFlags) : this()
+        public OutPutFilters(ILogger logger, RoleFilter roleFlags) : this(logger)
         {
             AppliedRoles = roleFlags;
             FiltersHelperInit(roleFlags.ToResourceName());
@@ -140,7 +141,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="roles">RoleFilter flags on roles to filter on</param>
         /// <param name="rolesFilter">Dictionary of role to OutPutFilters</param>
-        public OutPutFilters(RoleFilter roles, Dictionary<RoleFilter, OutPutFilters> rolesFilter = null) : this()
+        public OutPutFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, OutPutFilters> rolesFilter = null) : this(logger)
         {
             ApplyRoleFilters(roles, false, rolesFilter);
         }
@@ -203,7 +204,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="fileOrResourceName">file path or resource name; an existing file gets the priortiy over an omonymous resource name</param>
         /// <returns></returns>
-        private static Configuration GetConfig(string fileOrResourceName)
+        private Configuration GetConfig(string fileOrResourceName)
         {
             
             if (!File.Exists(fileOrResourceName))
@@ -215,7 +216,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 {
                     if (input == null)
                     {
-                        Log.ErrorFormat("Could not load configuration file: {0}.", fileOrResourceName);
+                        _log.LogError("Could not load configuration file: {0}.", fileOrResourceName);
                         return null;
                     }
                     var tmpFile = Path.GetTempPath() + Guid.NewGuid() + ".tmp";
@@ -236,7 +237,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             catch (Exception ex)
             {
                 var message = string.Format(@"Error loading configuration file '{0}'.", fileOrResourceName);
-                Log.Error(message, ex);
+                _log.LogError(message, ex);
                 throw;
             }
             return config;
@@ -370,7 +371,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 else
                 {
                     // load defaults
-                    mergeFilter = GetDefaults(role);
+                    mergeFilter = GetDefaults(role, _log);
                     RolesFilterHolder[role] = mergeFilter;
                 }
                 if (mergeFilter != null)
@@ -388,7 +389,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 mergeFilter = null;
             }
             //add the default property filters
-            OutPutFilters defaultPropFilters = new OutPutFilters(null, RoleFilter.Unknown, ImportSet.PropertyFilters);
+            OutPutFilters defaultPropFilters = new OutPutFilters(null, _log, RoleFilter.Unknown, ImportSet.PropertyFilters);
             Merge(defaultPropFilters);
 
             //save the applied roles at end as this.Copy(mergeFilter) would set to first role in RoleFilter
@@ -406,13 +407,13 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             Dictionary<T, OutPutFilters> modelFilterMap = new Dictionary<T, OutPutFilters>();
 
             //save this filter before working out all fed models
-            OutPutFilters saveFilter = new OutPutFilters();
+            OutPutFilters saveFilter = new OutPutFilters(_log);
             saveFilter.Copy(this);
 
             foreach (var item in modelRoleMap)
             {
                 ApplyRoleFilters(item.Value);
-                OutPutFilters roleFilter = new OutPutFilters();
+                OutPutFilters roleFilter = new OutPutFilters(_log);
                 roleFilter.Copy(this);
                 modelFilterMap.Add(item.Key, roleFilter);
             }
@@ -431,7 +432,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 string roleFile = role.ToResourceName();
                 if (!string.IsNullOrEmpty(roleFile))
                 {
-                    RolesFilterHolder[role] = new OutPutFilters(roleFile, role);
+                    RolesFilterHolder[role] = new OutPutFilters(roleFile, _log, role);
                 }
             }
         }
@@ -458,7 +459,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                     var roleFile = role.ToResourceName();
                     if (!string.IsNullOrEmpty(roleFile))
                     {
-                        RolesFilterHolder[role] = new OutPutFilters(roleFile, role);
+                        RolesFilterHolder[role] = new OutPutFilters(roleFile, _log, role);
                     }
                 }
             }
@@ -497,7 +498,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 return RolesFilterHolder[role];
             }
             //load defaults
-            var objFilter = GetDefaults(role);
+            var objFilter = GetDefaults(role, _log);
             if (objFilter != null)
             {
                 RolesFilterHolder[role] = objFilter;
@@ -510,7 +511,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="role">RoleFilter with single flag(role) set</param>
         /// <returns>OutPutFilters</returns>
-        public static OutPutFilters GetDefaults(RoleFilter role)
+        public static OutPutFilters GetDefaults(RoleFilter role, ILogger log)
         {
             if ((role & (role - 1)) != 0)
             {
@@ -518,7 +519,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             }
             var filterFile = role.ToResourceName();
             return !string.IsNullOrEmpty(filterFile) 
-                ? new OutPutFilters(filterFile, role) 
+                ? new OutPutFilters(filterFile, log, role) 
                 : null;
         }
 

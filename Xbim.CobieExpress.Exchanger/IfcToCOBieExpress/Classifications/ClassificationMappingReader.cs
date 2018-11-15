@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using log4net;
 using XbimExchanger.IfcToCOBieExpress.Classifications.Components;
 using Assembly = System.Reflection.Assembly;
 
@@ -13,7 +13,7 @@ namespace XbimExchanger.IfcToCOBieExpress.Classifications
 {
     internal class ClassificationMappingReader
     {
-        private static readonly ILog Log = LogManager.GetLogger("Xbim.Exchanger.IfcToCOBieLiteUK.Classifications.ClassificationMappingReader");
+        private readonly ILogger _log;
 
         private readonly Dictionary<string, Pointer> _mappingTable = new Dictionary<string, Pointer>();
 
@@ -27,8 +27,9 @@ namespace XbimExchanger.IfcToCOBieExpress.Classifications
             get { return _classificationMappingFiles != null && _classificationMappingFiles.Any(); }
         }
 
-        public ClassificationMappingReader()
+        public ClassificationMappingReader(ILogger logger)
         {
+            _log = logger;
             Init();
         }
 
@@ -67,13 +68,13 @@ namespace XbimExchanger.IfcToCOBieExpress.Classifications
                     uri = configValue;
             }
             var diLocal = new DirectoryInfo(".");
-            Log.DebugFormat("Trying to load classification mapping files from '{0}' running in '{1}'", uri, diLocal.FullName);
+            _log.LogDebug("Trying to load classification mapping files from '{0}' running in '{1}'", uri, diLocal.FullName);
             var d = new DirectoryInfo(uri);
             if (d.Exists)
                 _classificationMappingFiles = Directory.GetFiles(uri);
             else
             {
-                Log.ErrorFormat("Failed to load classification mapping files from '{0}' running in '{1}'", uri, diLocal.FullName);
+                _log.LogDebug("Failed to load classification mapping files from '{0}' running in '{1}'", uri, diLocal.FullName);
             }
         }
 

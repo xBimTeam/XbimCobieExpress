@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -16,8 +17,8 @@ namespace XbimExchanger.IfcToCOBieExpress
     /// </summary>
     public class XbimAttributedObject
     {
-        private readonly IIfcObjectDefinition _ifcObject;
         private readonly IModel _targetModel;
+        private readonly ILogger _log;
         private readonly Dictionary<string, IIfcProperty> _properties = new Dictionary<string, IIfcProperty>();
         private readonly Dictionary<string, IIfcPhysicalQuantity> _quantities = new Dictionary<string, IIfcPhysicalQuantity>();
         private readonly Dictionary<string, IIfcPropertySetDefinition> _propertySets=new Dictionary<string, IIfcPropertySetDefinition>();
@@ -29,15 +30,13 @@ namespace XbimExchanger.IfcToCOBieExpress
         /// <param name="targetModel"></param>
         public XbimAttributedObject(IIfcObjectDefinition obj, IModel targetModel)
         {
-            _ifcObject = obj;
+            IfcObject = obj;
             _targetModel = targetModel;
+            _log = _targetModel.Logger;
         }
 
         /// <summary />
-        public IIfcObjectDefinition IfcObject
-        {
-            get { return _ifcObject; }
-        }
+        public IIfcObjectDefinition IfcObject { get; }
 
         public void AddPropertySetDefinition(IIfcPropertySetDefinitionSelect pSetDefSelect)
         {
@@ -53,25 +52,24 @@ namespace XbimExchanger.IfcToCOBieExpress
         {
             if (string.IsNullOrWhiteSpace(pSetDef.Name))
             {
-                COBieExpressHelper.Logger.WarnFormat("Property Set Definition: #{0}, has no defined name. It has been ignored", pSetDef.EntityLabel);
+                _log.LogWarning("Property Set Definition: #{0}, has no defined name. It has been ignored", pSetDef.EntityLabel);
                 return;
             }
             if ( _propertySets.ContainsKey(pSetDef.Name))
             {
-                COBieExpressHelper.Logger.WarnFormat("Property Set Definition: #{0}={1}, is duplicated in Entity #{2}={3}. Duplicate ignored", pSetDef.EntityLabel, pSetDef.Name, _ifcObject.EntityLabel, _ifcObject.GetType().Name);
+                _log.LogWarning("Property Set Definition: #{0}={1}, is duplicated in Entity #{2}={3}. Duplicate ignored", pSetDef.EntityLabel, pSetDef.Name, IfcObject.EntityLabel, IfcObject.GetType().Name);
                 return;
             }
             _propertySets.Add(pSetDef.Name,pSetDef);
-            var propertySet = pSetDef as IIfcPropertySet;
             var quantitySet = pSetDef as IIfcElementQuantity;
-            if (propertySet != null)
+            if (pSetDef is IIfcPropertySet propertySet)
             {
                 foreach (var prop in propertySet.HasProperties)
                 {
                     var uniquePropertyName = pSetDef.Name + "." + prop.Name;
                     if (_properties.ContainsKey(uniquePropertyName))
                     {
-                        COBieExpressHelper.Logger.WarnFormat("Property: #{0}={1}.{2}, is duplicated in Entity #{3}={4}. Duplicate ignored", prop.EntityLabel, pSetDef.Name, prop.Name, _ifcObject.EntityLabel, _ifcObject.GetType().Name);
+                        _log.LogWarning("Property: #{0}={1}.{2}, is duplicated in Entity #{3}={4}. Duplicate ignored", prop.EntityLabel, pSetDef.Name, prop.Name, IfcObject.EntityLabel, IfcObject.GetType().Name);
                         continue;
                     }
                     _properties[uniquePropertyName] = prop;
@@ -83,10 +81,10 @@ namespace XbimExchanger.IfcToCOBieExpress
                 {
                     if (_quantities.ContainsKey(pSetDef.Name + "." + quantity.Name))
                     {
-                        COBieExpressHelper.Logger.WarnFormat("Quantity: #{0}={1}.{2}, is duplicated in Entity #{3}={4}. Duplicate ignored", quantity.EntityLabel, pSetDef.Name, quantity.Name, _ifcObject.EntityLabel, _ifcObject.GetType().Name);
+                        _log.LogWarning("Quantity: #{0}={1}.{2}, is duplicated in Entity #{3}={4}. Duplicate ignored", quantity.EntityLabel, pSetDef.Name, quantity.Name, IfcObject.EntityLabel, IfcObject.GetType().Name);
                         continue;
                     }
-                    _quantities[pSetDef.Name + "." + quantity.Name]= quantity;
+                    _quantities[pSetDef.Name + "." + quantity.Name] = quantity;
                 }
             }
         }
@@ -189,14 +187,12 @@ namespace XbimExchanger.IfcToCOBieExpress
 
         private string ConvertToString(IIfcProperty ifcProperty)
         {
-            var ifcPropertySingleValue = ifcProperty as IIfcPropertySingleValue;
-            var ifcPropertyEnumeratedValue = ifcProperty as IIfcPropertyEnumeratedValue;
-           
-            if (ifcPropertySingleValue != null)
+
+            if (ifcProperty is IIfcPropertySingleValue ifcPropertySingleValue)
             {
                 return ConvertToString(ifcPropertySingleValue);
             }
-            if (ifcPropertyEnumeratedValue != null)
+            if (ifcProperty is IIfcPropertyEnumeratedValue ifcPropertyEnumeratedValue)
             {
 
                 if (ifcPropertyEnumeratedValue.EnumerationValues.Count() == 1)
@@ -211,7 +207,7 @@ namespace XbimExchanger.IfcToCOBieExpress
                 return result.TrimEnd(';', ' ');
             }
 
-            COBieExpressHelper.Logger.WarnFormat("Conversion Error: #{0}={1} [{2}] cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name, ifcProperty.GetType().Name);
+            _log.LogWarning("Conversion Error: #{0}={1} [{2}] cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name, ifcProperty.GetType().Name);
             return null;
         }
 
@@ -243,42 +239,39 @@ namespace XbimExchanger.IfcToCOBieExpress
         /// <param name="result"></param>
         /// <typeparam name="TSimpleType"></typeparam>
         /// <returns></returns>
-        private static bool TryGetAttributeValue<TSimpleType>(IIfcProperty ifcProperty, out TSimpleType result)
+        private bool TryGetAttributeValue<TSimpleType>(IIfcProperty ifcProperty, out TSimpleType result)
         {
-            var ifcPropertyEnumeratedValue = ifcProperty as IIfcPropertyEnumeratedValue;
-            var ifcPropertyBoundedValue = ifcProperty as IIfcPropertyBoundedValue;
             var ifcPropertyTableValue = ifcProperty as IIfcPropertyTableValue;
             var ifcPropertyReferenceValue = ifcProperty as IIfcPropertyReferenceValue;
             var ifcPropertyListValue = ifcProperty as IIfcPropertyListValue;
 
-            var ifcPropertySingleValue = ifcProperty as IIfcPropertySingleValue;
-            if (ifcPropertySingleValue != null)
+            if (ifcProperty is IIfcPropertySingleValue ifcPropertySingleValue)
                 return TryGetSimpleValue(ifcPropertySingleValue.NominalValue, out result);
 
-            if (ifcPropertyEnumeratedValue != null)
+            if (ifcProperty is IIfcPropertyEnumeratedValue ifcPropertyEnumeratedValue)
             {
-                if (ifcPropertyEnumeratedValue.EnumerationValues.Count()==1)
+                if (ifcPropertyEnumeratedValue.EnumerationValues.Count() == 1)
                     return TryGetSimpleValue(ifcPropertyEnumeratedValue.EnumerationValues.First(), out result);
-                
+
                 if (typeof(TSimpleType) == typeof(string)) //if it is a string we can add all the  values in a list
                 {
                     result = (TSimpleType)(object)string.Join(";", ifcPropertyEnumeratedValue.EnumerationValues);
                     return true;
                 }
-                COBieExpressHelper.Logger.WarnFormat("IfcPropertyEnumeratedValue Conversion: Multiple Enumerated values can only be stored in a string type");
+                _log.LogWarning("IfcPropertyEnumeratedValue Conversion: Multiple Enumerated values can only be stored in a string type");
                 result = default(TSimpleType);
                 return false;
             }
-            
-            if (ifcPropertyBoundedValue != null)
+
+            if (ifcProperty is IIfcPropertyBoundedValue ifcPropertyBoundedValue)
             {
                 if (typeof(TSimpleType) == typeof(string)) //if it is a string we can add  the bounded values in a statement
                 {
-                    result = (TSimpleType) (object) (ifcPropertyBoundedValue.LowerBoundValue + " to " +
+                    result = (TSimpleType)(object)(ifcPropertyBoundedValue.LowerBoundValue + " to " +
                                                      ifcPropertyBoundedValue.UpperBoundValue);
                     return true;
                 }
-                COBieExpressHelper.Logger.WarnFormat("IfcPropertyBoundedValue Conversion: Bounded values can only be stored in a string type");
+                _log.LogWarning("IfcPropertyBoundedValue Conversion: Bounded values can only be stored in a string type");
             }
             else if (ifcPropertyTableValue != null)
             {
@@ -295,10 +288,10 @@ namespace XbimExchanger.IfcToCOBieExpress
 
                 if (typeof(TSimpleType) == typeof(string)) //if it is a string we can add all the  values in a list
                 {
-                    result = (TSimpleType) (object) string.Join(";", ifcPropertyListValue.ListValues);
+                    result = (TSimpleType)(object)string.Join(";", ifcPropertyListValue.ListValues);
                     return true;
                 }
-                COBieExpressHelper.Logger.WarnFormat("IfcPropertyList Conversion: ValueMultiple List values can only be stored in a string type");
+                _log.LogWarning("IfcPropertyList Conversion: ValueMultiple List values can only be stored in a string type");
             }
 
             result = default(TSimpleType);
@@ -311,7 +304,7 @@ namespace XbimExchanger.IfcToCOBieExpress
         //}
 
 
-        private static bool TryGetSimpleValue<TSimpleType>(IExpressValueType ifcValue, out TSimpleType result)
+        private bool TryGetSimpleValue<TSimpleType>(IExpressValueType ifcValue, out TSimpleType result)
         {
             var targetType = typeof (TSimpleType);
 
@@ -484,39 +477,32 @@ namespace XbimExchanger.IfcToCOBieExpress
                 }
             }
 
-            COBieExpressHelper.Logger.Warn("Unexpected type " + targetType.Name);
+            _log.LogWarning("Unexpected type " + targetType.Name);
             result = default(TSimpleType);
             return false;
         }
-        private static bool TryGetAttributeValue<TBaseType>(IIfcPhysicalQuantity ifcQuantity, out TBaseType result)
+        private bool TryGetAttributeValue<TBaseType>(IIfcPhysicalQuantity ifcQuantity, out TBaseType result)
         {
-            var ifcQuantityLength = ifcQuantity as IIfcQuantityLength;
-            var ifcQuantityArea = ifcQuantity as IIfcQuantityArea;
-            var ifcQuantityVolume = ifcQuantity as IIfcQuantityVolume;
-            var ifcQuantityCount = ifcQuantity as IIfcQuantityCount;
-            var ifcQuantityWeight = ifcQuantity as IIfcQuantityWeight;
-            var ifcQuantityTime = ifcQuantity as IIfcQuantityTime;
-            var ifcPhysicalComplexQuantity = ifcQuantity as IIfcPhysicalComplexQuantity;
-            
-            if (ifcQuantityLength != null)
+
+            if (ifcQuantity is IIfcQuantityLength ifcQuantityLength)
                 return TryGetSimpleValue(ifcQuantityLength.LengthValue, out result);
 
-            if (ifcQuantityArea != null)
+            if (ifcQuantity is IIfcQuantityArea ifcQuantityArea)
                 return TryGetSimpleValue(ifcQuantityArea.AreaValue, out result);
-            
-            if (ifcQuantityVolume  != null)
+
+            if (ifcQuantity is IIfcQuantityVolume ifcQuantityVolume)
                 return TryGetSimpleValue(ifcQuantityVolume.VolumeValue, out result);
 
-            if (ifcQuantityCount != null)
+            if (ifcQuantity is IIfcQuantityCount ifcQuantityCount)
                 return TryGetSimpleValue(ifcQuantityCount.CountValue, out result);
-            
-            if (ifcQuantityWeight != null)
+
+            if (ifcQuantity is IIfcQuantityWeight ifcQuantityWeight)
                 return TryGetSimpleValue(ifcQuantityWeight.WeightValue, out result);
-            
-            if (ifcQuantityTime != null)
+
+            if (ifcQuantity is IIfcQuantityTime ifcQuantityTime)
                 return TryGetSimpleValue(ifcQuantityTime.TimeValue, out result);
-            
-            if (ifcPhysicalComplexQuantity != null)
+
+            if (ifcQuantity is IIfcPhysicalComplexQuantity ifcPhysicalComplexQuantity)
             {
                 //Logger.WarnFormat("Ifc Physical Complex Quantities  values are not supported in COBie");
             }
@@ -529,47 +515,43 @@ namespace XbimExchanger.IfcToCOBieExpress
         /// </summary>
         /// <param name="ifcProperty"></param>
         /// <returns></returns>
-        public static TValue ConvertToSimpleType<TValue>(IIfcProperty ifcProperty) where TValue:struct
+        public TValue ConvertToSimpleType<TValue>(IIfcProperty ifcProperty) where TValue:struct
         {
-
-            var ifcPropertySingleValue = ifcProperty as IIfcPropertySingleValue;
-            var ifcPropertyEnumeratedValue = ifcProperty as IIfcPropertyEnumeratedValue;
-            var ifcPropertyBoundedValue = ifcProperty as IIfcPropertyBoundedValue;
             var ifcPropertyTableValue = ifcProperty as IIfcPropertyTableValue;
             var ifcPropertyReferenceValue = ifcProperty as IIfcPropertyReferenceValue;
             var ifcPropertyListValue = ifcProperty as IIfcPropertyListValue;
 
-            if (ifcPropertySingleValue != null)
+            if (ifcProperty is IIfcPropertySingleValue ifcPropertySingleValue)
             {
                 return ConvertToSimpleType<TValue>(ifcPropertySingleValue);
             }
-            if (ifcPropertyEnumeratedValue != null)
+            if (ifcProperty is IIfcPropertyEnumeratedValue ifcPropertyEnumeratedValue)
             {
-               
+
                 if (ifcPropertyEnumeratedValue.EnumerationValues.Count() == 1)
                 {
                     var value = ifcPropertyEnumeratedValue.EnumerationValues.FirstOrDefault();
                     if (value != null)
-                        return (TValue) Convert.ChangeType(value.ToString(), typeof(TValue));
+                        return (TValue)Convert.ChangeType(value.ToString(), typeof(TValue));
                 }
                 var result = string.Join(";", ifcPropertyEnumeratedValue.EnumerationValues);
                 return (TValue)Convert.ChangeType(result, typeof(TValue));
             }
-            if (ifcPropertyBoundedValue != null)
+            if (ifcProperty is IIfcPropertyBoundedValue ifcPropertyBoundedValue)
             {
-                COBieExpressHelper.Logger.WarnFormat("Conversion Error: PropertyBoundedValue #{0}={1} cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name);
+                _log.LogWarning("Conversion Error: PropertyBoundedValue #{0}={1} cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name);
             }
             else if (ifcPropertyTableValue != null)
             {
-                COBieExpressHelper.Logger.WarnFormat("Conversion Error: PropertyTableValue #{0}={1} cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name);
+                _log.LogWarning("Conversion Error: PropertyTableValue #{0}={1} cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name);
             }
             else if (ifcPropertyReferenceValue != null)
             {
-                COBieExpressHelper.Logger.WarnFormat("Conversion Error: PropertyReferenceValue #{0}={1} cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name);
+                _log.LogWarning("Conversion Error: PropertyReferenceValue #{0}={1} cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name);
             }
             else if (ifcPropertyListValue != null)
             {
-                COBieExpressHelper.Logger.WarnFormat("Conversion Error: PropertyListValue #{0}={1} cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name);
+                _log.LogWarning("Conversion Error: PropertyListValue #{0}={1} cannot be converted to s simple value type", ifcProperty.EntityLabel, ifcProperty.Name);
             }
             return default(TValue);
         }
@@ -590,32 +572,27 @@ namespace XbimExchanger.IfcToCOBieExpress
 
                 //srl we need to define categories, the schema proposes "As Built|Submitted|Approved|Exact Requirement|Maximum Requirement|Minimum Requirement|Requirement", should DPoW set requirements?
             });
-           
-            var ifcPropertySingleValue = ifcProperty as IIfcPropertySingleValue;
-            var enumeratedValue = ifcProperty as IIfcPropertyEnumeratedValue;
-            var ifcPropertyBoundedValue = ifcProperty as IIfcPropertyBoundedValue;
-            var ifcPropertyTableValue = ifcProperty as IIfcPropertyTableValue;
             var ifcPropertyReferenceValue = ifcProperty as IIfcPropertyReferenceValue;
             var ifcPropertyListValue = ifcProperty as IIfcPropertyListValue;
-            
-            if (ifcPropertySingleValue != null)
+
+            if (ifcProperty is IIfcPropertySingleValue ifcPropertySingleValue)
             {
                 SetAttributeValueType(ifcPropertySingleValue, attribute);
                 return attribute;
             }
 
-            if (enumeratedValue != null)
+            if (ifcProperty is IIfcPropertyEnumeratedValue enumeratedValue)
             {
-                if (enumeratedValue.EnumerationReference != null && enumeratedValue.EnumerationReference.Unit!= null)
+                if (enumeratedValue.EnumerationReference != null && enumeratedValue.EnumerationReference.Unit != null)
                     attribute.Unit = enumeratedValue.EnumerationReference.Unit.FullName;
 
-                StringValue value = enumeratedValue.EnumerationValues.Count()==1 ? enumeratedValue.EnumerationValues.First().ToString() : string.Join(";", enumeratedValue.EnumerationValues);
+                StringValue value = enumeratedValue.EnumerationValues.Count() == 1 ? enumeratedValue.EnumerationValues.First().ToString() : string.Join(";", enumeratedValue.EnumerationValues);
                 attribute.Value = value;
 
 
                 //add in the allowed values
                 if (enumeratedValue.EnumerationReference == null ||
-                    !enumeratedValue.EnumerationReference.EnumerationValues.Any()) 
+                    !enumeratedValue.EnumerationReference.EnumerationValues.Any())
                     return attribute;
 
                 var allowedValues = enumeratedValue.EnumerationReference
@@ -625,23 +602,23 @@ namespace XbimExchanger.IfcToCOBieExpress
                 return attribute;
             }
 
-            if (ifcPropertyBoundedValue != null)
+            if (ifcProperty is IIfcPropertyBoundedValue ifcPropertyBoundedValue)
             {
                 SetAttributeValue(ifcPropertyBoundedValue, attribute);
                 return attribute;
             }
 
-            if (ifcPropertyTableValue != null)
+            if (ifcProperty is IIfcPropertyTableValue ifcPropertyTableValue)
             {
-                COBieExpressHelper.Logger.WarnFormat("Table values are not supported in COBie");
+                _log.LogWarning("Table values are not supported in COBie");
             }
             else if (ifcPropertyReferenceValue != null)
             {
-                COBieExpressHelper.Logger.WarnFormat("Reference property values are not supported in COBie");
+                _log.LogWarning("Reference property values are not supported in COBie");
             }
             else if (ifcPropertyListValue != null)
             {
-                COBieExpressHelper.Logger.WarnFormat("Multiple List values are not supported in COBie");
+                _log.LogWarning("Multiple List values are not supported in COBie");
             }
             return attribute;
         }
@@ -697,7 +674,7 @@ namespace XbimExchanger.IfcToCOBieExpress
         /// <param name="ifcProperty"></param>
         /// <typeparam name="TValue"></typeparam>
         /// <returns></returns>
-        public static TValue ConvertToSimpleType<TValue>(IIfcPropertySingleValue ifcProperty) where TValue : struct
+        public TValue ConvertToSimpleType<TValue>(IIfcPropertySingleValue ifcProperty) where TValue : struct
         {
             var ifcValue = (IExpressValueType)ifcProperty.NominalValue;
             var value = new TValue();
@@ -733,7 +710,7 @@ namespace XbimExchanger.IfcToCOBieExpress
             return value;
         }
 
-        private static DateTime ReadDateTime(string str)
+        private DateTime ReadDateTime(string str)
         {
             try
             {
@@ -758,7 +735,7 @@ namespace XbimExchanger.IfcToCOBieExpress
             }
             catch (Exception) //eat and log exception so default is returned
             {
-                COBieExpressHelper.Logger.WarnFormat("Date Time Conversion: An illegal date time string has been found [{0}]", str);
+                _log.LogWarning("Date Time Conversion: An illegal date time string has been found [{0}]", str);
             }
             return default(DateTime);
         }
@@ -783,8 +760,7 @@ namespace XbimExchanger.IfcToCOBieExpress
             if (ifcValue is IfcMonetaryMeasure)
             {
                 attribute.Value = (FloatValue)ifcValue.Value;
-                var monUnit = ifcProperty.Unit as IIfcMonetaryUnit;
-                if (monUnit == null) return;
+                if (!(ifcProperty.Unit is IIfcMonetaryUnit monUnit)) return;
 
                 attribute.Unit = monUnit.ToString();
                 return;

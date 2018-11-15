@@ -1,12 +1,11 @@
 ﻿using System.ComponentModel;
+using System.Threading.Tasks;
+using Xbim.Common;
 
 namespace XbimExchanger.IfcHelpers
 {
     public interface ICobieConverter
     {
-        void Run(CobieConversionParams args);
-
-        BackgroundWorker Worker
-        { get; }
+        Task<IModel> Run(CobieConversionParams args);
     }
 }

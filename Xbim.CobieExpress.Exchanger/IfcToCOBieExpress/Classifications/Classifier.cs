@@ -44,7 +44,7 @@ namespace XbimExchanger.IfcToCOBieExpress.Classifications
         /// </summary>
         private void AddClassificationsToAssets(CobieFacility facility)
         {
-            var dataReader = new ClassificationMappingReader();//DataReader Object which will create and populate the mappings table.
+            var dataReader = new ClassificationMappingReader(facility.Model.Logger);//DataReader Object which will create and populate the mappings table.
             //Get Each AssetType
             foreach (var type in facility.Model.Instances.OfType<CobieType>())
             {
