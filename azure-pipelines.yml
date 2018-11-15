@@ -35,8 +35,8 @@ steps:
   name: 'COBie_Schema_Pack'
   
 # Table Store pack
-- script: dotnet pack Xbim.IO.TableStore/Xbim.IO.TableStore.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
-  name: 'Table_Store_Pack'
+- script: dotnet pack Xbim.IO.Table/Xbim.IO.Table.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
+  name: 'Table_Pack'
 
 # Xbim.CobieExpress.Exchanger  
 - script: dotnet add Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(version)
@@ -49,7 +49,7 @@ steps:
 - script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(version)
   name: 'Cobie_IO_Update_CobieExpress'
   
-- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.IO.TableStore -s $(Build.BinariesDirectory) -v $(version)
+- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.IO.Table -s $(Build.BinariesDirectory) -v $(version)
   name: 'Cobie_IO_Update_TableStore'
 
 - script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)

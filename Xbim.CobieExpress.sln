@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2042
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.IO.TableStore.Local", "Xbim.IO.TableStore\Xbim.IO.TableStore.Local.csproj", "{679E8F2A-80EC-4619-BF2E-6E4F4C30FB13}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.IO.Table.Local", "Xbim.IO.Table\Xbim.IO.Table.Local.csproj", "{679E8F2A-80EC-4619-BF2E-6E4F4C30FB13}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.Local", "Xbim.CobieExpress\Xbim.CobieExpress.Local.csproj", "{47E55E60-7E7F-4B16-8BD0-C4216A36CEE0}"
 EndProject
