@@ -1,11 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Xbim.Common;
 using Xbim.Common.Federation;
@@ -55,7 +51,6 @@ namespace XbimExchanger.IfcToCOBieExpress.Conversion
                 var exchanger = new IfcToCoBieExpressExchanger
                     (model,
                     cobie,
-                    _logger,
                     parameters.ReportProgress,
                     parameters.Filter,
                     parameters.ConfigFile,

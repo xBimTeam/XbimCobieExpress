@@ -34,22 +34,21 @@ namespace Xbim.CobieExpress.IO
             InitEvents();
         }
 
-        public CobieModel()
+        /// <summary>
+        /// Creates memory model inside
+        /// </summary>
+        public CobieModel() : this(new MemoryModel(factory))
         {
             _esentDB = false;
-            _model = new MemoryModel(factory);
-            InitEvents();
         }
 
-        public CobieModel(bool esentDB)
+        /// <summary>
+        /// Creates EsentModel inside
+        /// </summary>
+        /// <param name="esentDbFile"></param>
+        public CobieModel(string esentDbFile): this(EsentModel.CreateModel(factory, esentDbFile))
         {
-            _esentDB = esentDB;
-            if(esentDB)
-                _model = EsentModel.CreateTemporaryModel(factory);
-            else
-                _model = new MemoryModel(factory);
-            
-            InitEvents();
+            _esentDB = true;
         }
 
         public object Tag { get; set; }

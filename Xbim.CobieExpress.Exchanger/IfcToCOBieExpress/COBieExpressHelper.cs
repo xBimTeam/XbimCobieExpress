@@ -800,14 +800,15 @@ namespace XbimExchanger.IfcToCOBieExpress
 
                 var asss = global::System.Reflection.Assembly.GetExecutingAssembly();
 
-                using (var input = asss.GetManifestResourceStream("XbimExchanger.IfcToCOBieLiteUK.COBieAttributes.config"))
+                using (var input = asss.GetManifestResourceStream(asss.GetName().Name + ".COBieAttributes.config"))
                 using (var output = File.Create(tmpFile))
                 {
                     if (input != null) input.CopyTo(output);
+                    else Logger.LogWarning("Failed to load default  attributes configuration");
                 }
             }
                         
-            if (!File.Exists(tmpFile))
+            if (!File.Exists(tmpFile) || new FileInfo(tmpFile).Length == 0)
             {
                 var directory = new DirectoryInfo(".");
                 throw new Exception(

@@ -89,6 +89,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CobieExpressTests.cs" />
     <Compile Include="CobieTests.cs" />
     <Compile Include="EmptyModelTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -102,8 +103,15 @@
     <None Include="TestFiles\LakesideRestaurant.cobieZip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestFiles\SampleHouse4.ifc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.Local.csproj">
+      <Project>{f3d7e771-3f0b-431e-b8d1-9c4a5592652a}</Project>
+      <Name>Xbim.CobieExpress.Exchanger.Local</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.Local.csproj">
       <Project>{a721e8ed-83f1-4d29-b0c7-dd8e79ea8e84}</Project>
       <Name>Xbim.CobieExpress.IO.Local</Name>

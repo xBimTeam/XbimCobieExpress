@@ -3,6 +3,7 @@ using Xbim.CobieExpress.IO;
 using Xbim.CobieExpress;
 using System.IO;
 using Xbim.IO.Esent;
+using System;
 
 namespace Xbim.CobieExpress.Tests
 {
@@ -12,13 +13,22 @@ namespace Xbim.CobieExpress.Tests
         [TestMethod]
         public void EsentInCobieModelTest()
         {
-            using (var model = new CobieModel(true))
+            string file = Guid.NewGuid() + ".xbim";
+            try
             {
-                using (var txn = model.BeginTransaction("Creation"))
+                using (var model = new CobieModel(file))
                 {
-                    var wall = model.Instances.New<CobieComponent>(w => w.Name = "Wall A");
-                    txn.Commit();
+                    using (var txn = model.BeginTransaction("Creation"))
+                    {
+                        var wall = model.Instances.New<CobieComponent>(w => w.Name = "Wall A");
+                        txn.Commit();
+                    }
                 }
+            }
+            finally
+            {
+                if (File.Exists(file))
+                    File.Delete(file);
             }
         }
 
@@ -76,22 +86,31 @@ namespace Xbim.CobieExpress.Tests
             File.Delete(stpZipName);
             File.Delete(esentName);
 
-
-            using (var model = new CobieModel(true))
+            string file = Guid.NewGuid() + ".xbim";
+            try
             {
-                CreateSimpleModel(model);
+                using (var model = new CobieModel(file))
+                {
+                    CreateSimpleModel(model);
 
-                //saving to Esent (will change extention to *.xbim even if you define something else)
-                model.SaveAsEsent(esentName);
+                    //saving to Esent (will change extention to *.xbim even if you define something else)
+                    model.SaveAsEsent(esentName);
 
-                //save as step21
-                model.SaveAsStep21(stpName);
+                    //save as step21
+                    model.SaveAsStep21(stpName);
 
-                //save as step21zip
-                model.SaveAsStep21Zip(stpZipName);
+                    //save as step21zip
+                    model.SaveAsStep21Zip(stpZipName);
+                }
+
+                AssertAllModelTypes();
             }
-
-            AssertAllModelTypes();
+            finally
+            {
+                if (File.Exists(file))
+                    File.Delete(file);
+            }
+            
         }
 
         private const string esentName = "test.xbim";
