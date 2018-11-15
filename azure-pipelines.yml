@@ -1,0 +1,88 @@
+# .NET Desktop
+# Build and run tests for .NET Desktop or Windows classic desktop solutions.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/apps/windows/dot-net
+
+trigger:
+- master
+- develop
+
+pool:
+  vmImage: 'VS2017-Win2016'
+
+variables:
+  major: 5
+  minor: 0
+  # creates a counter called cobieversion and seeds it at 100 and then assigns the value to a variable named patch.
+  patch: $[counter('cobieversion', 100)]
+  
+
+steps:
+# Windows script setting up  $(version) of the nuget package if this is development branch build
+- script: |
+    echo ##vso[task.setvariable variable=version]$(major).$(minor).$(patch)-prerelease
+  name: 'SettingPrereleaseNugetPackageVersion'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+- script: | 
+    echo ##vso[task.setvariable variable=version]$(major).$(minor).$(patch)
+  name: 'SettingNugetPackageVersion'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+
+- task: NuGetToolInstaller@0  
+
+# COBie EXPRESS schema
+- script: dotnet pack Xbim.CobieExpress/Xbim.CobieExpress.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
+  name: 'COBie_Schema_Pack'
+  
+# Table Store pack
+- script: dotnet pack Xbim.IO.TableStore/Xbim.IO.TableStore.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
+  name: 'Table_Store_Pack'
+
+# Xbim.CobieExpress.Exchanger  
+- script: dotnet add Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(version)
+  name: 'Exchanger_Update'
+
+- script: dotnet pack Xbim.CobieExpress.Exchanger/Xbim.CobieExpress.Exchanger.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
+  name: 'Exchanger_Pack'
+
+# Xbim.CobieExpress.IO
+- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(version)
+  name: 'Cobie_IO_Update_CobieExpress'
+  
+- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.IO.TableStore -s $(Build.BinariesDirectory) -v $(version)
+  name: 'Cobie_IO_Update_TableStore'
+
+- script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
+  name: 'Cobie_IO_Pack'
+
+  
+# Copy artifacts and Publish
+- task: CopyFiles@2
+  name: 'StagingArtefacts'
+  inputs:
+    sourceFolder: '$(Build.BinariesDirectory)'
+    contents: '**\*.nupkg' 
+    targetFolder: '$(build.artifactstagingdirectory)'
+    cleanTargetFolder: true
+    
+# Publish to master or develop MyGet feed based on the source branch
+- task: NuGetCommand@2
+  name: 'MyGetPublishing_Master'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+  inputs:
+    command: push
+    nuGetFeedType: external
+    publishFeedCredentials: 'MyGetMaster'
+    versioningScheme: byEnvVar
+    versionEnvVar: version
+
+- task: NuGetCommand@2
+  name: 'MyGetPublishing_Develop'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+  inputs:
+    command: push
+    nuGetFeedType: external
+    publishFeedCredentials: 'MyGetDev'
+    versioningScheme: byEnvVar
+    versionEnvVar: version
+    
