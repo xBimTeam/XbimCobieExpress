@@ -1,0 +1,489 @@
+﻿(*
+Copyright by:
+BIM Academy, Northumbria University, 2015
+
+License: Creative Commons Attribution 4.0 International Public License
+(https://creativecommons.org/licenses/by/4.0/legalcode)
+
+This work is part of xBIM Toolkit (https://github.com/xBimTeam/)
+
+Contents:
+Object model for COBie 2.4 in form of EXPRESS definitions based on COBie Responsibility Matrix. It reflects 
+all relations in between different data objects and makes it possible to handle COBie data as a graph structure
+rather than tabular spreadsheet data with weak name based references. COBie 2.4 definition is based on Facility Handower
+Model View Definition of IFC4 which is defined as an EXPRESS as well. However, definition in this file is far more simple
+and therefore easier to work with once data is extracted/converted from IFC4 data. It should also be possible to transpose
+data in between spreadsheet representation and STEP representation of the data. 
+
+Developed by:
+Martin Cerny (martin.cerny@northumbria.ac.uk)
+*)
+
+SCHEMA COBIE_EXPRESS;
+
+TYPE SpatialDivision = SELECT
+	(Site
+	,Facility
+	,Floor
+	,Space);
+END_TYPE;
+
+TYPE AttributeValue = SELECT
+	(DateTimeValue
+	,StringValue
+	,IntegerValue
+	,FloatValue
+	,BooleanValue);
+END_TYPE;
+
+TYPE StringValue = STRING;
+END_TYPE;
+
+TYPE IntegerValue = INTEGER;
+END_TYPE;
+
+TYPE FloatValue = REAL;
+END_TYPE;
+
+TYPE BooleanValue = BOOLEAN;
+END_TYPE;
+
+TYPE DateTimeValue = STRING;
+END_TYPE;
+
+ENTITY Phase
+	Name: STRING;
+	Project: Project;
+END_ENTITY;
+
+ENTITY ExternalSystem
+	Name: STRING;
+END_ENTITY;
+
+ENTITY ExternalObject
+	Name: STRING;
+END_ENTITY;
+
+ENTITY CreatedInfo
+	CreatedBy: Contact;
+	CreatedOn: DateTimeValue;
+END_ENTITY;
+
+ENTITY ReferencedObject
+  ABSTRACT SUPERTYPE OF (ONEOF
+  (Asset, Contact, Assembly, Connection, Spare, Resource, Job, Impact, Document, Attribute, Coordinate, Issue));
+	Created: CreatedInfo;
+	ExternalId: OPTIONAL STRING;
+	AltExternalId: OPTIONAL STRING;
+	ExternalSystem: OPTIONAL ExternalSystem;
+	ExternalObject: OPTIONAL ExternalObject;
+END_ENTITY;
+
+ENTITY Contact
+  SUBTYPE OF (ReferencedObject);
+	Email: STRING;
+	Category: Role;
+	Company: OPTIONAL STRING;
+	Phone: OPTIONAL STRING;
+	Department: OPTIONAL STRING;
+	OrganizationCode: OPTIONAL STRING;
+	GivenName: OPTIONAL STRING;
+	FamilyName: OPTIONAL STRING;
+	Street: OPTIONAL STRING;
+	PostalBox: OPTIONAL STRING;
+	Town: OPTIONAL STRING;
+	StateRegion: OPTIONAL STRING;
+	PostalCode: OPTIONAL STRING;
+	Country: OPTIONAL STRING;
+END_ENTITY;
+
+ENTITY Asset
+  ABSTRACT SUPERTYPE OF (ONEOF (Facility, Floor, Space, Zone, TypeOrComponent, System))
+  SUBTYPE OF (ReferencedObject);
+	Name: STRING;
+	Description: OPTIONAL STRING;
+	Categories: OPTIONAL LIST [1:?] OF Category;
+    Impacts: OPTIONAL LIST [0:?] OF Impact;
+    Documents: OPTIONAL LIST [0:?] OF Document;
+    Attributes: OPTIONAL LIST [0:?] OF Attribute;
+	Representations: OPTIONAL LIST [1:?] OF Coordinate;
+  INVERSE
+    CausingIssues: SET OF Issue FOR Causing;
+    AffectedBy: SET OF Issue FOR Affected;
+  UNIQUE
+	UR1: Name;
+END_ENTITY;
+
+ENTITY Facility
+ SUBTYPE OF (Asset);
+	LinearUnits: LinearUnit;
+	AreaUnits: AreaUnit;
+	VolumeUnits: VolumeUnit;
+	CurrencyUnit: CurrencyUnit;
+	AreaMeasurement: STRING;
+	Project: Project;
+	Site: Site;
+	Phase: OPTIONAL Phase;
+  INVERSE
+    Floors: SET [1:?] OF Floor FOR Facility;
+    Systems: SET OF System FOR Facility;
+END_ENTITY;
+
+ENTITY Project
+	Name: STRING;
+	Description: OPTIONAL STRING;
+	ExternalObject: OPTIONAL ExternalObject;
+	ExternalId: OPTIONAL STRING;
+	AltExternalId: OPTIONAL STRING;
+  INVERSE
+    Phases: SET OF Phase FOR Project;
+    Facilities: SET OF Facility FOR Project;
+END_ENTITY;
+
+ENTITY Site
+	Name: STRING;
+	Description: OPTIONAL STRING;
+	ExternalObject: OPTIONAL ExternalObject;
+	ExternalId: OPTIONAL STRING;
+	AltExternalId: OPTIONAL STRING;
+  INVERSE
+    Facilities: SET OF Facility FOR Site;
+END_ENTITY;
+
+ENTITY Floor
+ SUBTYPE OF (Asset);
+	Elevation: OPTIONAL REAL;
+	Height: OPTIONAL REAL;
+	Facility: Facility;
+  INVERSE
+    Spaces: SET OF Space FOR Floor;
+END_ENTITY;
+
+ENTITY Space
+ SUBTYPE OF (Asset);
+	RoomTag: OPTIONAL STRING;
+	UsableHeight: OPTIONAL REAL;
+	GrossArea: OPTIONAL REAL;
+	NetArea: OPTIONAL REAL;
+	Floor: Floor;
+  INVERSE
+    Components: SET OF Component FOR Spaces;
+	InZones: SET OF Zone FOR Spaces;
+END_ENTITY; 
+
+ENTITY Zone
+ SUBTYPE OF (Asset);
+	Spaces: OPTIONAL LIST [1:?] OF Space;
+END_ENTITY; 
+
+ENTITY TypeOrComponent
+  ABSTRACT SUPERTYPE OF (ONEOF (@Type, Component))
+  SUBTYPE OF (Asset);
+	AssemblyOf: OPTIONAL LIST [1:?] OF TypeOrComponent;
+  INVERSE
+    Connecting: SET OF Connection FOR RealizingComponent;
+	ConnectedBefore: SET OF Connection FOR ComponentA;
+    ConnectedAfter: SET OF Connection FOR ComponentB;
+  UNIQUE
+	UR1: Name;
+END_ENTITY;
+
+ENTITY @Type
+ SUBTYPE OF (TypeOrComponent);
+	AssetType: OPTIONAL AssetType;
+	Manufacturer: OPTIONAL Contact;
+	ModelNumber: OPTIONAL STRING;
+	WarrantyDescription: OPTIONAL STRING;
+	WarrantyGuarantorParts: OPTIONAL Contact;
+	WarrantyDurationParts: OPTIONAL REAL;
+	WarrantyGuarantorLabor: OPTIONAL Contact;
+	WarrantyDurationLabor: OPTIONAL REAL;
+	WarrantyDurationUnit: OPTIONAL DurationUnit;
+	ReplacementCost: OPTIONAL REAL;
+	ExpectedLife: OPTIONAL REAL;
+	DurationUnit: OPTIONAL DurationUnit;
+	NominalLength: OPTIONAL REAL;
+	NominalWidth: OPTIONAL REAL;
+	NominalHeight: OPTIONAL REAL;
+	ModelReference: OPTIONAL STRING;
+	Shape: OPTIONAL STRING;
+	Size: OPTIONAL STRING;
+	Color: OPTIONAL STRING;
+	Finish: OPTIONAL STRING;
+	Grade: OPTIONAL STRING;
+	Material: OPTIONAL STRING;
+	Constituents: OPTIONAL STRING;
+	Features: OPTIONAL STRING;
+	AccessibilityPerformance: OPTIONAL STRING;
+	CodePerformance: OPTIONAL STRING;
+	SustainabilityPerformance: OPTIONAL STRING;
+  INVERSE
+    Components: SET OF Component FOR @Type;
+    Spares: SET OF Spare FOR @Type;
+    Jobs: SET OF Job FOR @Type;
+END_ENTITY;
+
+ENTITY Component
+ SUBTYPE OF (TypeOrComponent);
+	SerialNumber: OPTIONAL STRING;
+	InstallationDate: OPTIONAL DateTimeValue;
+	WarrantyStartDate: OPTIONAL DateTimeValue;
+	TagNumber: OPTIONAL STRING;
+	BarCode: OPTIONAL STRING;
+	AssetIdentifier: OPTIONAL STRING;
+	@Type: @Type;
+	Spaces: LIST [1:2] OF Space;
+  INVERSE
+    InSystems: SET OF System FOR Components;
+END_ENTITY;
+
+ENTITY System
+ SUBTYPE OF (Asset);
+	Components: OPTIONAL LIST [1:?] OF Component;
+	Facility: Facility;
+END_ENTITY;
+
+ENTITY Connection
+  SUBTYPE OF (ReferencedObject);
+    Name: STRING;
+	Description: OPTIONAL STRING;
+	ConnectionType: ConnectionType;
+	ComponentA: TypeOrComponent;
+	ComponentB: TypeOrComponent;
+	RealizingComponent: OPTIONAL TypeOrComponent;
+	PortNameA: OPTIONAL STRING;
+	PortNameB: OPTIONAL STRING;
+END_ENTITY;
+
+ENTITY Spare
+  SUBTYPE OF (ReferencedObject);
+    Name: STRING;
+	Description: OPTIONAL STRING;
+	SpareType: SpareType;
+	@Type: @Type;
+	Suppliers: OPTIONAL LIST [0:?] OF Contact;
+	SetNumber: OPTIONAL STRING;
+	PartNumber: OPTIONAL STRING;
+END_ENTITY;
+
+ENTITY Resource
+  SUBTYPE OF (ReferencedObject);
+    Name: STRING;
+	Description: OPTIONAL STRING;
+	ResourceType: OPTIONAL ResourceType;
+END_ENTITY;
+
+ENTITY Job
+  SUBTYPE OF (ReferencedObject);
+	TaskNumber: OPTIONAL STRING;
+    Name: STRING;
+	Description: OPTIONAL STRING;
+	JobType: OPTIONAL JobType;
+	JobStatusType: OPTIONAL JobStatusType;
+	Duration: OPTIONAL REAL;
+	DurationUnit: OPTIONAL DurationUnit;
+	Start: OPTIONAL REAL;
+	StartUnit: OPTIONAL DurationUnit;
+	Frequency: OPTIONAL REAL;
+	FrequencyUnit: OPTIONAL DurationUnit;
+	Priors: OPTIONAL Job;
+	Resources: OPTIONAL LIST [0:?] OF Resource;
+    @Type: @Type;
+END_ENTITY;
+
+ENTITY Impact
+  SUBTYPE OF (ReferencedObject);
+    Name: STRING;
+	Description: OPTIONAL STRING;
+	ImpactType: OPTIONAL ImpactType;
+	ImpactStage: OPTIONAL ImpactStage;
+	Value: OPTIONAL REAL;
+	ImpactUnit: OPTIONAL ImpactUnit;
+	LeadInTime: OPTIONAL REAL;
+	Duration: OPTIONAL REAL;
+	LeadOutTime: OPTIONAL REAL;
+	DurationUnit: OPTIONAL DurationUnit;
+  INVERSE
+    RelatedAssets: SET OF Asset FOR Impacts;
+END_ENTITY;
+
+ENTITY Document
+  SUBTYPE OF (ReferencedObject);
+    Name: STRING;
+	Description: OPTIONAL STRING;
+	DocumentType: OPTIONAL DocumentType;
+	ApprovalType: OPTIONAL ApprovalType;
+	Stage: OPTIONAL StageType;
+	URL: STRING;
+	@Reference: OPTIONAL STRING;
+	Directory: OPTIONAL STRING;
+	File: OPTIONAL STRING;
+  INVERSE
+    RelatedAssets: SET OF Asset FOR Documents;
+END_ENTITY;
+
+ENTITY Attribute
+  SUBTYPE OF (ReferencedObject);
+    Name: STRING;
+	Description: OPTIONAL STRING;
+	Stage: OPTIONAL StageType;
+	Value: AttributeValue;
+	Unit: OPTIONAL STRING;
+	AllowedValues: OPTIONAL LIST [0:?] OF STRING;
+  INVERSE
+    RelatedAssets: SET OF Asset FOR Attributes;
+  DERIVE
+    PropertySet: ExternalObject := SELF\ReferencedObject.ExternalObject;
+END_ENTITY;
+
+ENTITY Issue
+  SUBTYPE OF (ReferencedObject);
+    Name: STRING;
+	Description: OPTIONAL STRING;
+	IssueType: OPTIONAL IssueType;
+	Risk: OPTIONAL IssueRisk;
+	Chance: OPTIONAL IssueChance;
+	Impact: OPTIONAL IssueImpact;
+	Owner: OPTIONAL Contact;
+	Mitigation: OPTIONAL STRING;
+	Causing: OPTIONAL Asset;
+	Affected: OPTIONAL Asset;
+END_ENTITY;
+
+ENTITY Coordinate
+  SUBTYPE OF (ReferencedObject);
+    Name: STRING;
+	CoordinateType: OPTIONAL CoordinateTypeEnum;
+	X: REAL;
+	Y: REAL;
+	Z: REAL;
+	RotationX: OPTIONAL REAL;
+	RotationY: OPTIONAL REAL;
+	RotationZ: OPTIONAL REAL;
+  INVERSE
+    RelatedAssets: SET OF Asset FOR Representations;
+END_ENTITY;
+
+TYPE CoordinateTypeEnum = ENUMERATION OF
+	(
+	point,
+	line_end_one,
+	line_end_two,
+	box_lowerleft,
+	box_upperright
+	);
+END_TYPE;
+
+(*
+  Pick values represent either classification or extendable enumeration of values.
+  Different kinds of enumerations are represented by distinct types so it is possible
+  to find all existing candidates if needed just by their type.
+*)
+
+ENTITY PickValue
+	ABSTRACT SUPERTYPE;
+	Value: STRING;
+END_ENTITY;
+
+ENTITY Category
+  SUBTYPE OF (PickValue);
+	Description: OPTIONAL STRING;
+	Classification: OPTIONAL Classification;
+END_ENTITY;
+
+ENTITY Classification
+	Name: STRING;
+	Description: OPTIONAL STRING;
+  INVERSE
+    Categories: SET OF Category FOR Classification;
+END_ENTITY;
+
+ENTITY Role
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY LinearUnit
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY AreaUnit
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY VolumeUnit
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY CurrencyUnit
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY DurationUnit
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY AssetType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY ConnectionType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY SpareType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY ResourceType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY JobType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY JobStatusType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY ImpactType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY ImpactStage
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY ImpactUnit
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY DocumentType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY StageType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY ApprovalType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY IssueType
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY IssueChance
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY IssueRisk
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+ENTITY IssueImpact
+  SUBTYPE OF (PickValue);
+END_ENTITY;
+
+END_SCHEMA;
