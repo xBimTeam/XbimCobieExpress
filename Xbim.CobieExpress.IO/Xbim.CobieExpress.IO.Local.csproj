@@ -5,13 +5,11 @@
 	<RootNamespace>Xbim.CobieExpress.IO</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Xbim.CobieExpress\Xbim.CobieExpress.Local.csproj" />
-    <ProjectReference Include="..\Xbim.IO.TableStore\Xbim.IO.TableStore.Local.csproj" />
+    <PackageReference Include="Xbim.IO.Esent" Version="5.0.190" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
-    <PackageReference Include="Xbim.IO.Esent">
-      <Version>5.0.143</Version>
-    </PackageReference>
+  <ItemGroup>
+    <ProjectReference Include="..\Xbim.CobieExpress\Xbim.CobieExpress.Local.csproj" />
+    <ProjectReference Include="..\Xbim.IO.Table\Xbim.IO.Table.Local.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Resources.Designer.cs">
