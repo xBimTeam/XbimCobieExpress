@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace XbimExchanger.IfcToCOBieExpress.Classifications.Components
+namespace Xbim.CobieExpress.Exchanger.Classifications.Components
 {
     /// <summary>
     /// Struct for storing pointer data into the

@@ -3,12 +3,12 @@ using System.Linq;
 using Xbim.CobieExpress;
 using Xbim.Ifc4.Interfaces;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
     /// <summary>
     /// Proxy for an IfcTypeObject, allows proxy types where none are defined in the Ifc File
     /// </summary>
-    public class XbimIfcProxyTypeObject
+    internal class XbimIfcProxyTypeObject
     {
         private readonly IIfcTypeObject _ifcTypeObject;
         private readonly COBieExpressHelper _helper;
@@ -19,7 +19,7 @@ namespace XbimExchanger.IfcToCOBieExpress
         /// </summary>
         /// <param name="helper"></param>
         /// <param name="name"></param>
-        public XbimIfcProxyTypeObject(COBieExpressHelper helper, string name)
+        internal XbimIfcProxyTypeObject(COBieExpressHelper helper, string name)
         {
             _name = name;
             _helper = helper;

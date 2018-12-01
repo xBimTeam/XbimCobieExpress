@@ -3,7 +3,7 @@ using Xbim.Common;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
     internal class MappingIfcSiteToSite : XbimMappings<IModel, IModel, int, IIfcSite, CobieSite>
     {

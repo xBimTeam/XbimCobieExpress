@@ -2,7 +2,7 @@
 using Xbim.CobieExpress.Exchanger.FilterHelper;
 using Xbim.Common;
 
-namespace XbimExchanger.IfcHelpers
+namespace Xbim.CobieExpress.Exchanger
 {
     /// <summary>
     /// Params Class, holds parameters for worker to access

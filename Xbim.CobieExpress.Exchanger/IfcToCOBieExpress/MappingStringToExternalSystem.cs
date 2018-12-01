@@ -2,7 +2,7 @@
 using Xbim.Common;
 using Xbim.Ifc;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
     internal class MappingStringToExternalSystem : XbimMappings<IModel, IModel, string, string, CobieExternalSystem>
     {

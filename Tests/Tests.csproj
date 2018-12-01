@@ -150,9 +150,6 @@
     <None Include="TestFiles\2016-02-29-Dormitory-COBie.xlsx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="TestFiles\Duplex_MEP_20110907.ifc">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="TestFiles\LakesideRestaurant.cobieZip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

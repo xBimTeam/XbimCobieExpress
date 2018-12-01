@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xbim.CobieExpress;
 using Xbim.Ifc4.Interfaces;
-using XbimExchanger.IfcHelpers;
 
-namespace XbimExchanger.IfcToCOBieExpress 
+namespace Xbim.CobieExpress.Exchanger 
 {
     internal class MappingIfcBuildingToFacility : MappingIfcObjectToAsset<IIfcBuilding,CobieFacility> 
     {

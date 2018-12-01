@@ -1,6 +1,6 @@
 using System;
 
-namespace XbimExchanger.IfcHelpers
+namespace Xbim.CobieExpress.Exchanger
 {
     public enum ExportFormatEnum
     {

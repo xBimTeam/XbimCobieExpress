@@ -2,7 +2,7 @@
 using Xbim.CobieExpress;
 using Xbim.Ifc4.Interfaces;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
     internal class MappingIfcSystemToSystem : MappingIfcObjectToAsset<IIfcSystem, CobieSystem>
     {

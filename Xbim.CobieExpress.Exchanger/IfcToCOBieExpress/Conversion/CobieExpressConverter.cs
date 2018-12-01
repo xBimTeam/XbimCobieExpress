@@ -5,10 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xbim.Common;
 using Xbim.Common.Federation;
-using XbimExchanger.IfcHelpers;
 
 
-namespace XbimExchanger.IfcToCOBieExpress.Conversion
+namespace Xbim.CobieExpress.Exchanger.Conversion
 {
 
     public class CobieExpressConverter : ICobieConverter
@@ -33,6 +32,7 @@ namespace XbimExchanger.IfcToCOBieExpress.Conversion
                 return GetCobieModel(args);
             });
         }
+
 
         private IModel GetCobieModel(CobieConversionParams parameters)
         {

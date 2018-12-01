@@ -1,6 +1,6 @@
 ﻿using Xbim.Ifc4.Interfaces;
 
-namespace XbimExchanger.IfcHelpers.Ifc2x3
+namespace Xbim.CobieExpress.Exchanger.IfcHelpers.Ifc2x3
 {
     public static class IfcPropertySetDefinitionExtensions
     {

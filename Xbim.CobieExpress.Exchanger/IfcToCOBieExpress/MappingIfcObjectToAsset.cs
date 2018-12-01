@@ -3,7 +3,7 @@ using Xbim.Common;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
     internal abstract class MappingIfcObjectToAsset<TIfc, TCobie> : XbimMappings<IModel, IModel, int, TIfc, TCobie>
         where TIfc : IIfcObjectDefinition

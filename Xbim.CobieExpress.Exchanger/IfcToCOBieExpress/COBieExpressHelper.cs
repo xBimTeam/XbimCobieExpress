@@ -1,23 +1,19 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
-using Xbim.CobieExpress;
-using Xbim.Common;
+using Xbim.CobieExpress.Exchanger.EqCompare;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
+using Xbim.Common;
 using Xbim.Ifc4.Interfaces;
-using XbimExchanger.IfcToCOBieExpress.EqCompare;
-using XbimExchanger.IfcHelpers;
-using Microsoft.Extensions.Logging;
-using Xbim.CobieExpress.Exchanger;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
-    
-    
+
+
     /// <summary>
     /// 
     /// </summary>
@@ -42,7 +38,7 @@ namespace XbimExchanger.IfcToCOBieExpress
     /// 
     /// </summary>
     // ReSharper disable once InconsistentNaming
-    public class COBieExpressHelper
+    internal class COBieExpressHelper
     {
 
         internal readonly ILogger Logger;

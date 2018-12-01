@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using Xbim.CobieExpress.Exchanger;
 
-namespace XbimExchanger
+namespace Xbim.CobieExpress.Exchanger
 {
     public abstract class XbimExchanger<TSourceRepository, TTargetRepository> 
     {

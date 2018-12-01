@@ -6,10 +6,10 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using XbimExchanger.IfcToCOBieExpress.Classifications.Components;
+using Xbim.CobieExpress.Exchanger.Classifications.Components;
 using Assembly = System.Reflection.Assembly;
 
-namespace XbimExchanger.IfcToCOBieExpress.Classifications
+namespace Xbim.CobieExpress.Exchanger.Classifications
 {
     internal class ClassificationMappingReader
     {

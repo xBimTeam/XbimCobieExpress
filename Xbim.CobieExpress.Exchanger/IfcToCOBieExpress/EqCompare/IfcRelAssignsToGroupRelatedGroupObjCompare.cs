@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Xbim.Ifc4.Interfaces;
 
-namespace XbimExchanger.IfcToCOBieExpress.EqCompare
+namespace Xbim.CobieExpress.Exchanger.EqCompare
 {
 
     /// <summary>

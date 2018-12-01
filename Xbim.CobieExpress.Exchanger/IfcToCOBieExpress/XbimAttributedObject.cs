@@ -9,13 +9,13 @@ using Xbim.Ifc4.DateTimeResource;
 using Xbim.Ifc4.Interfaces;
 using Xbim.Ifc4.MeasureResource;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
    
     /// <summary>
     /// 
     /// </summary>
-    public class XbimAttributedObject
+    internal class XbimAttributedObject
     {
         private readonly IModel _targetModel;
         private readonly ILogger _log;

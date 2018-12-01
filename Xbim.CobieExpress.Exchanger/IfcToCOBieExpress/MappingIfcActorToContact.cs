@@ -5,7 +5,7 @@ using Xbim.CobieExpress;
 using Xbim.Common;
 using Xbim.Ifc4.Interfaces;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
 
     internal class MappingIfcActorToContact : XbimMappings<IModel, IModel, string, IIfcActorSelect, CobieContact>

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace XbimExchanger
+namespace Xbim.CobieExpress.Exchanger
 {
     public interface IXbimMappings<TSourceRepository, TTargetRepository>
     {

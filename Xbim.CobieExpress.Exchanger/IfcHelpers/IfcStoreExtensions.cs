@@ -6,7 +6,7 @@ using Xbim.CobieExpress.Exchanger.FilterHelper;
 using Xbim.Ifc4.Interfaces;
 using Microsoft.Extensions.Logging;
 
-namespace XbimExchanger.IfcHelpers
+namespace Xbim.CobieExpress.Exchanger.IfcHelpers
 {
     public static class IModelExtensions
     {

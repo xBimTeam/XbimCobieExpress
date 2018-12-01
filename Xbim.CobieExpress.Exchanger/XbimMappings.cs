@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace XbimExchanger
+namespace Xbim.CobieExpress.Exchanger
 {
     /// <summary>
     /// Abstract class for mapping between different object models and schemas

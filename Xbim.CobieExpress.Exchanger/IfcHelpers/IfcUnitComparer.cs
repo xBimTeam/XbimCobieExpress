@@ -3,7 +3,7 @@ using System.Linq;
 
 using Xbim.Ifc4.Interfaces;
 
-namespace XbimExchanger.IfcHelpers
+namespace Xbim.CobieExpress.Exchanger.IfcHelpers
 {
     public struct IfcUnitComparer : IEqualityComparer<IIfcUnit>
     {

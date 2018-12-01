@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Xbim.CobieExpress;
+using Xbim.CobieExpress.Exchanger.Classifications.Components;
 using Xbim.Common;
-using Xbim.Ifc;
-using XbimExchanger.IfcToCOBieExpress.Classifications.Components;
 
-namespace XbimExchanger.IfcToCOBieExpress.Classifications
+
+namespace Xbim.CobieExpress.Exchanger.Classifications
 {
     internal class Classifier
     {

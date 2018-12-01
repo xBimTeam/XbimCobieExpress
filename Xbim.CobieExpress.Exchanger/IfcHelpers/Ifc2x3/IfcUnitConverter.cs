@@ -5,7 +5,7 @@ using Xbim.Common;
 using Xbim.Ifc4.Interfaces;
 using Xbim.Ifc4.MeasureResource;
 
-namespace XbimExchanger.IfcHelpers.Ifc2x3
+namespace Xbim.CobieExpress.Exchanger.IfcHelpers.Ifc2x3
 {
     /// <summary>
     /// Helper to convert text descriptions to formal Units

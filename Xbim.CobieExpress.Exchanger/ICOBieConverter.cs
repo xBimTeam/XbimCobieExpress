@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Xbim.Common;
 
-namespace XbimExchanger.IfcHelpers
+namespace Xbim.CobieExpress.Exchanger
 {
     public interface ICobieConverter
     {

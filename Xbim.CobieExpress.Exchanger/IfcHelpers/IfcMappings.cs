@@ -1,9 +1,8 @@
 ﻿using System;
 using Xbim.Common;
-using Xbim.Ifc;
 
 
-namespace XbimExchanger.IfcHelpers
+namespace Xbim.CobieExpress.Exchanger.IfcHelpers
 {
     public abstract class IfcMappings<TSourceRepository, TFromKey, TFromObject, TToObject> : XbimMappings<TSourceRepository, IModel, TFromKey, TFromObject, TToObject> where TToObject : IPersistEntity
     {

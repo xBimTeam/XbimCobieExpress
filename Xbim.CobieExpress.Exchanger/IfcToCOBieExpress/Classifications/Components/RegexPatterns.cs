@@ -1,4 +1,4 @@
-﻿namespace XbimExchanger.IfcToCOBieExpress.Classifications.Components
+﻿namespace Xbim.CobieExpress.Exchanger.Classifications.Components
 {
     public static class RegexPatterns
     {

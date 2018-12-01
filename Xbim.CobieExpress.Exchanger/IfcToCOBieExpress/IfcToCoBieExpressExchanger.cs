@@ -1,15 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Extensions.Logging.Abstractions;
+using System.Collections.Generic;
 using System.Linq;
-using Xbim.CobieExpress;
-using Xbim.Common;
+using Xbim.CobieExpress.Exchanger.Classifications;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
-using Xbim.Ifc;
+using Xbim.CobieExpress.Exchanger.IfcHelpers;
+using Xbim.Common;
 using Xbim.Ifc4.Interfaces;
-using XbimExchanger.IfcToCOBieExpress.Classifications;
-using XbimExchanger.IfcHelpers;
-using Microsoft.Extensions.Logging.Abstractions;
 
-namespace XbimExchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
     public class IfcToCoBieExpressExchanger : XbimExchanger<IModel, IModel>
     {
