@@ -5,6 +5,14 @@
 	<RootNamespace>Xbim.CobieExpress.IO</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Configurations\COBieUK2012.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Configurations\COBieUK2012.xml">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Xbim.IO.Esent" Version="5.0.190" />
   </ItemGroup>
   <ItemGroup>
@@ -23,5 +31,8 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
   </ItemGroup>
 </Project>

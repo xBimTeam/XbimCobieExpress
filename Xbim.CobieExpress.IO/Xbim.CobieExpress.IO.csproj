@@ -26,6 +26,14 @@
       <Version>5.0.190</Version>
     </PackageReference>
   </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove="Configurations\COBieUK2012.xml" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Include="Configurations\COBieUK2012.xml" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Update="Resources.Designer.cs">
       <DesignTime>True</DesignTime>

@@ -261,7 +261,7 @@ namespace Xbim.IO.Tests
 
         private static ModelMapping GetCobieMapping()
         {
-            return ModelMapping.Load(CobieExpress.IO.Properties.Resources.COBieUK2012);
+            return CobieModel.GetMapping();
         }
     }
 }

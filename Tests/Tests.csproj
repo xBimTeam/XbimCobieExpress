@@ -150,6 +150,9 @@
     <None Include="TestFiles\2016-02-29-Dormitory-COBie.xlsx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestFiles\Duplex_MEP_20110907.ifc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestFiles\LakesideRestaurant.cobieZip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -172,7 +175,7 @@
     </ProjectReference>
     <ProjectReference Include="..\Xbim.IO.Table\Xbim.IO.Table.Local.csproj">
       <Project>{679e8f2a-80ec-4619-bf2e-6e4f4c30fb13}</Project>
-      <Name>Xbim.IO.TableStore.Local</Name>
+      <Name>Xbim.IO.Table.Local</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
