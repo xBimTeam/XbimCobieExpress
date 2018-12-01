@@ -23,7 +23,7 @@
   
   <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
     <PackageReference Include="Xbim.IO.Esent">
-      <Version>5.0.143</Version>
+      <Version>5.0.190</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
