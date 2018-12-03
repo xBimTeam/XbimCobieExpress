@@ -5,7 +5,7 @@
 	<RootNamespace>Xbim.CobieExpress</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Xbim.Common" Version="5.0.190" />
+    <PackageReference Include="Xbim.Common" Version="5.0.191" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
