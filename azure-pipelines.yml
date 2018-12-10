@@ -11,6 +11,9 @@ pool:
   vmImage: 'VS2017-Win2016'
 
 variables:
+  solution: '**.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
   major: 5
   minor: 0
   # creates a counter called cobieversion and seeds it at 100 and then assigns the value to a variable named buildno.
@@ -63,13 +66,30 @@ steps:
     Field: FileVersion
     OutputVersion: OutputedVersion
 
+# nuget restore sln
+- task: NuGetCommand@2
+  displayName: 'NuGet restore sln'
+  inputs:
+    restoreSolution: '$(solution)'
+    feedsToUse: config
+    nugetConfigPath: 'nuget.config'
+
+# vs2017 build
+- task: VSBuild@1
+  displayName: 'Build solution'
+  inputs:
+    solution: '$(solution)'
+    msbuildArgs: '/t:build'
+    platform: '$(BuildPlatform)'
+    configuration: '$(BuildConfiguration)'
+
 # Unit tests
 - task: DotNetCoreCLI@2
-  displayName: 'dotnet test $(buildConfiguration)'
+  displayName: 'dotnet test $(BuildConfiguration)'
   inputs:
     command: test
     projects: '**/*Tests/*.csproj'
-    arguments: '--configuration $(buildConfiguration) --collect "Code coverage" --filter TestCategory!=IfcXml'
+    arguments: '--configuration $(BuildConfiguration) --collect "Code coverage"'
 
 
 # COBie EXPRESS schema
