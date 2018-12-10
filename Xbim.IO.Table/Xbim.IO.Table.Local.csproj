@@ -2,11 +2,13 @@
   <PropertyGroup>
     <TargetFrameworks>net47;netstandard2.0</TargetFrameworks>
     <AssemblyName>Xbim.IO.Table</AssemblyName>
-	<RootNamespace>Xbim.IO.Table</RootNamespace>
+    <RootNamespace>Xbim.IO.Table</RootNamespace>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\XbimOpenSourceKeyFile.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NPOI" Version="2.4.0" />
-    <PackageReference Include="Xbim.Common" Version="5.0.191" />
+    <PackageReference Include="Xbim.Common" Version="5.0.200" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

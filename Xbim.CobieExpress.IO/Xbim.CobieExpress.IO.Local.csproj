@@ -2,7 +2,9 @@
   <PropertyGroup>
     <TargetFrameworks>net47</TargetFrameworks>
     <AssemblyName>Xbim.CobieExpress.IO</AssemblyName>
-	<RootNamespace>Xbim.CobieExpress.IO</RootNamespace>
+    <RootNamespace>Xbim.CobieExpress.IO</RootNamespace>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\XbimOpenSourceKeyFile.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Configurations\COBieUK2012.xml" />
@@ -13,7 +15,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Xbim.IO.Esent" Version="5.0.191" />
+    <PackageReference Include="Xbim.IO.Esent" Version="5.0.200" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Xbim.CobieExpress\Xbim.CobieExpress.Local.csproj" />
