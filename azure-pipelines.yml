@@ -117,10 +117,10 @@ steps:
 - script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(packageversion)
   displayName: 'Xbim.COBieExpress.IO - add package reference CobieExpress'
   
-- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.IO.Table -s $(Build.BinariesDirectory) -v $(version)
+- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.IO.Table -s $(Build.BinariesDirectory) -v $(packageversion)
   displayName: 'Xbim.COBieExpress.IO - add package reference IO.Table'
 
-- script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
+- script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
   displayName: 'Xbim.COBieExpress.IO - pack'
 
   
