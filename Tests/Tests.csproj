@@ -172,9 +172,9 @@
       <Project>{f3d7e771-3f0b-431e-b8d1-9c4a5592652a}</Project>
       <Name>Xbim.CobieExpress.Exchanger.Local</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.Local.csproj">
-      <Project>{a721e8ed-83f1-4d29-b0c7-dd8e79ea8e84}</Project>
-      <Name>Xbim.CobieExpress.IO.Local</Name>
+    <ProjectReference Include="..\Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj">
+      <Project>{60334ebc-29a5-4b58-a65b-3a0bff739a75}</Project>
+      <Name>Xbim.CobieExpress.IO</Name>
     </ProjectReference>
     <ProjectReference Include="..\Xbim.CobieExpress\Xbim.CobieExpress.Local.csproj">
       <Project>{47e55e60-7e7f-4b16-8bd0-c4216a36cee0}</Project>

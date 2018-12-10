@@ -3,15 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2042
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.IO.Table.Local", "Xbim.IO.Table\Xbim.IO.Table.Local.csproj", "{679E8F2A-80EC-4619-BF2E-6E4F4C30FB13}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.IO.Table", "Xbim.IO.Table\Xbim.IO.Table.csproj", "{679E8F2A-80EC-4619-BF2E-6E4F4C30FB13}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.Local", "Xbim.CobieExpress\Xbim.CobieExpress.Local.csproj", "{47E55E60-7E7F-4B16-8BD0-C4216A36CEE0}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.IO.Local", "Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.Local.csproj", "{A721E8ED-83F1-4D29-B0C7-DD8E79EA8E84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress", "Xbim.CobieExpress\Xbim.CobieExpress.csproj", "{47E55E60-7E7F-4B16-8BD0-C4216A36CEE0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{A36024FA-B358-46F9-80EE-D65F7C77B2C3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.Exchanger.Local", "Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.Local.csproj", "{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.Exchanger", "Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj", "{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7C0E02A7-9D6F-41E3-9D94-8A4E9E4BF0F0}"
 	ProjectSection(SolutionItems) = preProject
@@ -21,6 +19,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		nuget.config = nuget.config
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.IO", "Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj", "{60334EBC-29A5-4B58-A65B-3A0BFF739A75}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,10 +36,6 @@ Global
 		{47E55E60-7E7F-4B16-8BD0-C4216A36CEE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47E55E60-7E7F-4B16-8BD0-C4216A36CEE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{47E55E60-7E7F-4B16-8BD0-C4216A36CEE0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A721E8ED-83F1-4D29-B0C7-DD8E79EA8E84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A721E8ED-83F1-4D29-B0C7-DD8E79EA8E84}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A721E8ED-83F1-4D29-B0C7-DD8E79EA8E84}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A721E8ED-83F1-4D29-B0C7-DD8E79EA8E84}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A36024FA-B358-46F9-80EE-D65F7C77B2C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A36024FA-B358-46F9-80EE-D65F7C77B2C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A36024FA-B358-46F9-80EE-D65F7C77B2C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -48,6 +44,10 @@ Global
 		{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60334EBC-29A5-4B58-A65B-3A0BFF739A75}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60334EBC-29A5-4B58-A65B-3A0BFF739A75}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60334EBC-29A5-4B58-A65B-3A0BFF739A75}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60334EBC-29A5-4B58-A65B-3A0BFF739A75}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

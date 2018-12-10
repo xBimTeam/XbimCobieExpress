@@ -36,7 +36,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="4.5.0" />
-    <PackageReference Include="Xbim.Ifc4" Version="5.0.190" />
+    <PackageReference Include="Xbim.Ifc4" Version="5.0.200" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xbim.CobieExpress\Xbim.CobieExpress.csproj" />
   </ItemGroup>
 
 </Project>

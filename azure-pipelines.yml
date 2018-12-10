@@ -13,47 +13,95 @@ pool:
 variables:
   major: 5
   minor: 0
-  # creates a counter called cobieversion and seeds it at 100 and then assigns the value to a variable named patch.
-  patch: $[counter('cobieversion', 100)]
+  # creates a counter called cobieversion and seeds it at 100 and then assigns the value to a variable named buildno.
+  buildNo: $[counter('cobieversion', 100)]
   
+name: $(BuildDefinitionName)_$(SourceBranchName)_$(major).$(minor).$(buildNo)
 
 steps:
-# Windows script setting up  $(version) of the nuget package if this is development branch build
+# Windows script setting up  $(packageversion) of the nuget package based on branch
+# Master branch
 - script: |
-    echo ##vso[task.setvariable variable=version]$(major).$(minor).$(patch)-prerelease
-  name: 'SettingPrereleaseNugetPackageVersion'
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
-- script: | 
-    echo ##vso[task.setvariable variable=version]$(major).$(minor).$(patch)
-  name: 'SettingNugetPackageVersion'
+    echo ##vso[task.setvariable variable=packageversion]$(major).$(minor).$(buildNo)
+  displayName: 'Setting Master Nuget PackageVersion'
   condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+- script: | 
+    echo ##vso[task.setvariable variable=packageversion]$(major).$(minor).$(buildNo)-$(Build.SourceBranchName)
+  displayName: 'Setting Prerelease Nuget PackageVersion'
+  condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
 
-- task: NuGetToolInstaller@0  
+
+# Windows script setting up $(fileversion) used to stamp AssemblyFileVersions. 
+# By convention we use 'Major.Minor.BuildNo.0' on Master and 'Major.Minor.0.BuildNo' on other branches
+# Master branch
+- script: | 
+    echo ##vso[task.setvariable variable=fileversion]$(major).$(minor).$(buildNo).0
+  displayName: 'Setting FileVersion'
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+# Any other branch
+- script: | 
+    echo ##vso[task.setvariable variable=fileversion]$(major).$(minor).0.$(buildNo)
+  displayName: 'Setting Prerelease FileVersion'
+  condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
+
+- task: NuGetToolInstaller@0
+  displayName: 'Use NuGet 4.6.2'
+  inputs:
+    versionSpec: '4.6.2'
+
+# Version .NET Core project files
+# Description - Applies a version to a .NET Core assembly via the .csproj files based on the build number. 
+# Based on https://github.com/rfennell/AzurePipelines/wiki/Version-Assemblies-and-Packages-Tasks-YAML#versiondotnetcoreassembliestask
+- task: VersionDotNetCoreAssemblies@2
+  displayName: 'Versioning netcore projects $(fileversion)'
+  inputs: 
+    # Required arguments
+    Path: $(Build.SourcesDirectory)
+    VersionNumber: $(fileversion)
+    VersionRegex: \d+\.\d+\.\d+\.\d+
+    FilenamePattern: .csproj
+    Field: FileVersion
+    OutputVersion: OutputedVersion
+
+# Unit tests
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet test $(buildConfiguration)'
+  inputs:
+    command: test
+    projects: '**/*Tests/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --collect "Code coverage" --filter TestCategory!=IfcXml'
+
 
 # COBie EXPRESS schema
-- script: dotnet pack Xbim.CobieExpress/Xbim.CobieExpress.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
-  name: 'COBie_Schema_Pack'
+- script: dotnet pack Xbim.CobieExpress/Xbim.CobieExpress.csproj -c Release -OutputDirectory $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
+  displayName: 'Xbim.COBieExpress - pack'
   
 # Table Store pack
-- script: dotnet pack Xbim.IO.Table/Xbim.IO.Table.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
-  name: 'Table_Pack'
+- script: dotnet pack Xbim.IO.Table/Xbim.IO.Table.csproj -c Release -OutputDirectory $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
+  displayName: 'Xbim.IO.Table - pack'
 
-# Xbim.CobieExpress.Exchanger  
-- script: dotnet add Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(version)
-  name: 'Exchanger_Update'
+# Xbim.CobieExpress.Exchanger
+- script: dotnet remove Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj reference ..\Xbim.CobieExpress\Xbim.CobieExpress.csproj
+  displayName: 'Xbim.COBieExpress.Exchanger - remove project references'
 
-- script: dotnet pack Xbim.CobieExpress.Exchanger/Xbim.CobieExpress.Exchanger.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
-  name: 'Exchanger_Pack'
+- script: dotnet add Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(packageversion)
+  displayName: 'Xbim.COBieExpress.Exchanger - add package reference'
+
+- script: dotnet pack Xbim.CobieExpress.Exchanger/Xbim.CobieExpress.Exchanger.csproj -c Release -OutputDirectory $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
+  displayName: 'Xbim.COBieExpress.Exchanger - pack'
 
 # Xbim.CobieExpress.IO
-- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(version)
-  name: 'Cobie_IO_Update_CobieExpress'
+- script: dotnet remove Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj reference ..\Xbim.CobieExpress\Xbim.CobieExpress.csproj ..\Xbim.IO.Table\Xbim.IO.Table.csproj
+  displayName: 'Xbim.COBieExpress.IO - remove project references'
+
+- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(packageversion)
+  displayName: 'Xbim.COBieExpress.IO - add package reference CobieExpress'
   
 - script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.IO.Table -s $(Build.BinariesDirectory) -v $(version)
-  name: 'Cobie_IO_Update_TableStore'
+  displayName: 'Xbim.COBieExpress.IO - add package reference IO.Table'
 
-- script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c Release -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
-  name: 'Cobie_IO_Pack'
+- script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c Release -OutputDirectory $(Build.BinariesDirectory) /p:PackageVersion=$(version)
+  displayName: 'Xbim.COBieExpress.IO - pack'
 
   
 # Copy artifacts and Publish
@@ -74,7 +122,7 @@ steps:
     nuGetFeedType: external
     publishFeedCredentials: 'MyGetMaster'
     versioningScheme: byEnvVar
-    versionEnvVar: version
+    versionEnvVar: packageversion
 
 - task: NuGetCommand@2
   name: 'MyGetPublishing_Develop'
@@ -84,5 +132,5 @@ steps:
     nuGetFeedType: external
     publishFeedCredentials: 'MyGetDev'
     versioningScheme: byEnvVar
-    versionEnvVar: version
+    versionEnvVar: packageversion
     

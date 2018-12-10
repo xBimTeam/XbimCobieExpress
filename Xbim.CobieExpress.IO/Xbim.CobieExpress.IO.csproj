@@ -24,7 +24,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
     <PackageReference Include="Xbim.IO.Esent">
-      <Version>5.0.190</Version>
+      <Version>5.0.200</Version>
     </PackageReference>
   </ItemGroup>
 
@@ -34,6 +34,11 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Configurations\COBieUK2012.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xbim.CobieExpress\Xbim.CobieExpress.csproj" />
+    <ProjectReference Include="..\Xbim.IO.Table\Xbim.IO.Table.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Resources.Designer.cs">

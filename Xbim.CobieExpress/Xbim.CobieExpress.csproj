@@ -22,7 +22,7 @@
     <AssemblyOriginatorKeyFile>..\XbimOpenSourceKeyFile.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Xbim.Common" Version="5.0.190" />
+    <PackageReference Include="Xbim.Common" Version="5.0.200" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
