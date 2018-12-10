@@ -2,9 +2,8 @@
   <PropertyGroup>
     <TargetFrameworks>net47</TargetFrameworks>
     <AssemblyName>Xbim.CobieExpress.IO</AssemblyName>
-	<RootNamespace>Xbim.CobieExpress.IO</RootNamespace>
-	
-	<Title>Xbim COBie Express IO</Title>   
+    <RootNamespace>Xbim.CobieExpress.IO</RootNamespace>
+    <Title>Xbim COBie Express IO</Title>
     <Version>5.0.0.0</Version>
     <AssemblyVersion>5.0.0.0</AssemblyVersion>
     <FileVersion>5.0.0.0</FileVersion>
@@ -17,20 +16,22 @@
     <RepositoryUrl>https://github.com/xBimTeam/XbimEssentials/tree/develop</RepositoryUrl>
     <PackageIconUrl>https://avatars1.githubusercontent.com/u/2284875?v=3&amp;amp;s=240</PackageIconUrl>
     <PackageTags>BIM, IFC, IfcXml, IfcZip, Ifc4,  COBie, .Net, C#, BuildingSmart</PackageTags>
-    <PackageReleaseNotes>Separated from xBIM Essentials into separate project</PackageReleaseNotes>    
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>   
+    <PackageReleaseNotes>Separated from xBIM Essentials into separate project</PackageReleaseNotes>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\XbimOpenSourceKeyFile.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
-  
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
     <PackageReference Include="Xbim.IO.Esent">
       <Version>5.0.190</Version>
     </PackageReference>
   </ItemGroup>
-  
+
   <ItemGroup>
     <None Remove="Configurations\COBieUK2012.xml" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <EmbeddedResource Include="Configurations\COBieUK2012.xml" />
   </ItemGroup>

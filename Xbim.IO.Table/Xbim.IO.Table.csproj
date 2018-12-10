@@ -2,9 +2,8 @@
   <PropertyGroup>
     <TargetFrameworks>net47;netstandard2.0</TargetFrameworks>
     <AssemblyName>Xbim.IO.Table</AssemblyName>
-	<RootNamespace>Xbim.IO.Table</RootNamespace>
-	
-	<Title>Xbim Table Store</Title>   
+    <RootNamespace>Xbim.IO.Table</RootNamespace>
+    <Title>Xbim Table Store</Title>
     <Version>5.0.0.0</Version>
     <AssemblyVersion>5.0.0.0</AssemblyVersion>
     <FileVersion>5.0.0.0</FileVersion>
@@ -18,7 +17,9 @@
     <PackageIconUrl>https://avatars1.githubusercontent.com/u/2284875?v=3&amp;amp;s=240</PackageIconUrl>
     <PackageTags>BIM, IFC, IfcXml, IfcZip, Ifc4,  COBie, .Net, C#, BuildingSmart</PackageTags>
     <PackageReleaseNotes>Separated from xBIM Essentials into separate project</PackageReleaseNotes>    
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>   
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\XbimOpenSourceKeyFile.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NPOI" Version="2.4.0" />

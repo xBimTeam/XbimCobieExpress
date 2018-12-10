@@ -2,9 +2,8 @@
   <PropertyGroup>
     <TargetFrameworks>net47;netstandard2.0</TargetFrameworks>
     <AssemblyName>Xbim.CobieExpress</AssemblyName>
-	<RootNamespace>Xbim.CobieExpress</RootNamespace>
-	
-    <Title>Xbim COBie Express</Title>   
+    <RootNamespace>Xbim.CobieExpress</RootNamespace>
+    <Title>Xbim COBie Express</Title>
     <Version>5.0.0.0</Version>
     <AssemblyVersion>5.0.0.0</AssemblyVersion>
     <FileVersion>5.0.0.0</FileVersion>
@@ -17,9 +16,10 @@
     <RepositoryUrl>https://github.com/xBimTeam/XbimEssentials/tree/develop</RepositoryUrl>
     <PackageIconUrl>https://avatars1.githubusercontent.com/u/2284875?v=3&amp;amp;s=240</PackageIconUrl>
     <PackageTags>BIM, IFC, IfcXml, IfcZip, Ifc4,  COBie, .Net, C#, BuildingSmart</PackageTags>
-    <PackageReleaseNotes>Separated from xBIM Essentials into separate project</PackageReleaseNotes>    
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>   
-
+    <PackageReleaseNotes>Separated from xBIM Essentials into separate project</PackageReleaseNotes>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\XbimOpenSourceKeyFile.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Xbim.Common" Version="5.0.190" />
