@@ -93,11 +93,11 @@ steps:
 
 
 # COBie EXPRESS schema
-- script: dotnet pack Xbim.CobieExpress/Xbim.CobieExpress.csproj -c Release -OutputDirectory $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
+- script: dotnet pack Xbim.CobieExpress/Xbim.CobieExpress.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
   displayName: 'Xbim.COBieExpress - pack'
   
 # Table Store pack
-- script: dotnet pack Xbim.IO.Table/Xbim.IO.Table.csproj -c Release -OutputDirectory $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
+- script: dotnet pack Xbim.IO.Table/Xbim.IO.Table.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
   displayName: 'Xbim.IO.Table - pack'
 
 # Xbim.CobieExpress.Exchanger
@@ -107,7 +107,7 @@ steps:
 - script: dotnet add Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(packageversion)
   displayName: 'Xbim.COBieExpress.Exchanger - add package reference'
 
-- script: dotnet pack Xbim.CobieExpress.Exchanger/Xbim.CobieExpress.Exchanger.csproj -c Release -OutputDirectory $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
+- script: dotnet pack Xbim.CobieExpress.Exchanger/Xbim.CobieExpress.Exchanger.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
   displayName: 'Xbim.COBieExpress.Exchanger - pack'
 
 # Xbim.CobieExpress.IO
@@ -120,7 +120,7 @@ steps:
 - script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.IO.Table -s $(Build.BinariesDirectory) -v $(version)
   displayName: 'Xbim.COBieExpress.IO - add package reference IO.Table'
 
-- script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c Release -OutputDirectory $(Build.BinariesDirectory) /p:PackageVersion=$(version)
+- script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(version)
   displayName: 'Xbim.COBieExpress.IO - pack'
 
   
