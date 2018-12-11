@@ -1,27 +1,115 @@
+
+
+Branch | Status
+------ | -------
+Master | [![Build Status](https://dev.azure.com/xBIMTeam/xBIMToolkit/_apis/build/status/xBimTeam.XbimCobieExpress?branchName=master)](https://dev.azure.com/xBIMTeam/xBIMToolkit/_build/latest?definitionId=2&branchName=master)
+Develop | [![Build Status](https://dev.azure.com/xBIMTeam/xBIMToolkit/_apis/build/status/xBimTeam.XbimCobieExpress?branchName=develop)](https://dev.azure.com/xBIMTeam/xBIMToolkit/_build/latest?definitionId=2&branchName=develop)
+
+
 # Xbim COBie Express
 Part of Xbim; the eXtensible [Building Information Modelling (BIM) Toolkit](https://xbimteam.github.io/)
 
-This code was originally part of xBIM Essentials but was moved out to make Essentials smaller and more clean.
+This code was originally part of xBIM Essentials but was moved out to make Essentials smaller and more focussed.
 
-COBie Express is our attempt to support COBie in a way ahich is a lot easier to maintain compared to spreadsheets. It is possible to export data into spreadsheets
-and it is also possible to load the data from them but you should be aware that spreadsheets are not reliable source of information and that design of 
-COBie spreadsheets makes it very hard to maintain integrity of the data using several bad practises of database design in its core.
+COBie Express is our attempt to support COBie in a way that is a lot easier to maintain compared to spreadsheets. 
 
-COBie Express is modeled using EXPRESS modelling language (the same as IFC) and the implementation is generated using the same tooling as we use for IFC.
+This library enables you to both read and write spreadsheets adhering to the COBie Schema (MVD), 
+while also providing the power of the XBIM toolkit to query, interrogate and build data transactionally.
+
+COBie Express is modeled using EXPRESS modelling language (the same as IFC) and the implementation is 
+generated using the same tooling as we use for IFC. 
 As a result you can use all advanced data processing features of xBIM to work with the data. 
 
-## What is xBIM Toolkit?
+## Code Examples
 
-The xBIM Tookit (eXtensible Building Information Modelling) is an open-source, software development BIM toolkit that 
-supports the BuildingSmart Data Model (aka the [Industry Foundation Classes IFC](http://en.wikipedia.org/wiki/Industry_Foundation_Classes)).
+### 1 Reading from an Excel COBie spreadsheet
 
-xBIM allows developers to read, create and view [Building Information (BIM)](http://en.wikipedia.org/wiki/Building_information_modeling) Models in the IFC format. 
-There is full support for geometric, topological operations and visualisation. In addition xBIM supports 
-bi-directional translation between IFC and COBie formats
+If you're familiar with *LINQ* or have every queried IFC models with XBIM, you'll be right at home quering
+COBie data sources. 
 
-## Getting Started
+```csharp
 
-You will need Visual Studio 2017 or newer to compile the Solution. All solutions target .NET 4.7 and .NET Standard 2.0 where possible
+    using (IModel model = CobieModel.ImportFromTable("MyCobieSpreadsheet.xlsx", out string report))
+    {
+        // Get all the contacts
+        var contacts = model.Instances.OfType<CobieContact>().ToList();
+        
+        // Query the spaces but filter by a Uniclass2015 category. And then my the room area
+        var largeCommercialSpaces = model.Instances.OfType<CobieSpace>()
+            .Where(space => space.Categories.Any(cat => cat.Classification.Name.StartsWith("SL_20_50")))
+            .Where(space => space.GrossArea > 1000);
+        
+        // We can then drill across to other parts of the model
+        var occupancyRatingOfFirstSpaces = largeCommercialSpaces.FirstOrDefault().Attributes
+            .Where(attr => attr.Name.StartsWith("Occupancy"));
+    }
+```
+
+### 2. Converting IFCs to COBIe spreadheets
+
+This is a more sophisticated example where we convert an IFC to COBie. Here we're using some 
+built in mappings, but these can all be over-ridden in the `IfcToCoBieExpressExchanger`
+constructor. See `OutPutFilters` and [CobieAttributes.config](Xbim.CobieExpress.Exchanger/IfcToCOBieExpress/CobieAttributes.config)
+
+```csharp
+    const string input = @"SampleHouse4.ifc";
+
+    var ifc = MemoryModel.OpenReadStep21(input);
+
+    var cobie = new CobieModel();
+    using (var txn = cobie.BeginTransaction("Sample house conversion"))
+    {
+        var exchanger = new IfcToCoBieExpressExchanger(ifc, cobie
+            /*,     // More advanced configuration options available
+            reportProgress: reportProgressDelegate,
+            filter: outputFilters,
+            configFile: pathToAttributeMappingConfigFile,
+            extId: EntityIdentifierMode.GloballyUniqueIds,
+            sysMode: SystemExtractionMode.System,
+            classify: true*/
+            );
+        exchanger.Convert();
+        txn.Commit();
+    }
+
+    // We can persists our model to disk for faster access in future
+    var output = Path.ChangeExtension(input, ".cobie");
+    cobie.SaveAsEsent(output);
+
+    // We can fix up the data to make it valid - e.g. Deduplicate some names
+    using (var txn = cobie.BeginTransaction("Make some changes"))
+    {
+        MakeUniqueNames<CobieSpace>(cobie);
+        MakeUniqueNames<CobieType>(cobie);
+        txn.Commit();
+    }
+
+    // Finally export as a COBie spreadsheet
+    output = Path.ChangeExtension(input, ".xlsx");
+    cobie.ExportToTable(output, out string report);
+```
+
+### Using the library
+
+To get started, the simplest approach is to add the `Xbim.COBieExpress.Exchanger` and `Xbim.COBieExpress.IO` 
+nuget package to your Visual Studio Project from Nuget or get the latest versions from our [MyGet feeds](nuget.config)
+
+Alternatively you can add the packages using Nuget's Package Manager Console and issuing the following command:
+
+```
+PM> Install-Package Xbim.COBieExpress.Exchanger
+PM> Install-Package Xbim.COBieExpress.IO
+```
+
+
+
+## Building yourself
+
+You will need Visual Studio 2017 or newer to compile the Solution. 
+Prior versions of Visual Studio may work, but we'd recommend 2017 where possible.
+The [free VS 2017 Community Edition](https://visualstudio.microsoft.com/downloads/) should work fine. 
+All projects target .NET Framework *net47*, as well as *netstandard2.0*, which should 
+permit limited trials of XBIM with .NET Core / Mono etc.
 
 
 ## Licence

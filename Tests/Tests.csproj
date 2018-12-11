@@ -2,20 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net47</TargetFrameworks>
-    <Title>Xbim.CobieExpress.Tests</Title>
-    <Version>5.0.0.0</Version>
-    <Copyright>Copyright Xbim Ltd.</Copyright>
-    <Description>
-      Unit Tests for Xbim.CobieExpress
-    </Description>
-    <Authors>xBIM team</Authors>
-    <Company>Xbim Ltd.</Company>
-    <AssemblyVersion>5.0.0.0</AssemblyVersion>
-    <FileVersion>5.0.0.0</FileVersion>
-    <PackageIconUrl>https://avatars1.githubusercontent.com/u/2284875?v=3&amp;amp;s=240</PackageIconUrl>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\XbimOpenSourceKeyFile.snk</AssemblyOriginatorKeyFile>
+    <Title>Xbim CobieExpress Tests</Title>
+    <Description>Unit Tests for Xbim.CobieExpress</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />

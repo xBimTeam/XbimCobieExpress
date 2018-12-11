@@ -58,6 +58,7 @@ namespace Xbim.CobieExpress.IO
         /// This constructor only opens an in memory model
         /// </summary>
         /// <param name="input"></param>
+        /// <param name="streamSize"></param>
         /// <param name="labelFrom"></param>
         /// <returns></returns>
         public static CobieModel OpenStep21(Stream input, long streamSize, int labelFrom)
