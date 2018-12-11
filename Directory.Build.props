@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <IsTestProject Condition="$(MSBuildProjectName.EndsWith('Tests')) OR $(MSBuildProjectName.EndsWith('.Test'))">true</IsTestProject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateDocumentationFile Condition=" '$(IsTestProject)' != 'true' ">true</GenerateDocumentationFile>
+    <PackageTags>COBie</PackageTags>
+    <NoWarn>CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+</Project>
