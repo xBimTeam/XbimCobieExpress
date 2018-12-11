@@ -3,33 +3,12 @@
     <TargetFrameworks>net47</TargetFrameworks>
     <AssemblyName>Xbim.CobieExpress.IO</AssemblyName>
     <RootNamespace>Xbim.CobieExpress.IO</RootNamespace>
-    <Title>Xbim COBie Express IO</Title>
-    <Version>5.0.0.0</Version>
-    <AssemblyVersion>5.0.0.0</AssemblyVersion>
-    <FileVersion>5.0.0.0</FileVersion>
-    <Copyright>Xbim Ltd.</Copyright>
-    <Description>.net library that provides support for the COBie ESPRESS specific model implementation</Description>
-    <Authors>Steve Lockley, Martin Cerny</Authors>
-    <Company>Xbim Ltd.</Company>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/xBimTeam/XbimEssentials/master/LICENCE.md</PackageLicenseUrl>
-    <PackageProjectUrl>https://github.com/xBimTeam/</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/xBimTeam/XbimEssentials/tree/develop</RepositoryUrl>
-    <PackageIconUrl>https://avatars1.githubusercontent.com/u/2284875?v=3&amp;amp;s=240</PackageIconUrl>
-    <PackageTags>BIM, IFC, IfcXml, IfcZip, Ifc4,  COBie, .Net, C#, BuildingSmart</PackageTags>
-    <PackageReleaseNotes>Separated from xBIM Essentials into separate project</PackageReleaseNotes>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\XbimOpenSourceKeyFile.snk</AssemblyOriginatorKeyFile>
+    <Title>XBIM COBie Express IO</Title>
+    <Description>Provides support for serializing/deserializing a COBie EXPRESS model through an underlying IModel implementation</Description>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
-    <PackageReference Include="Xbim.IO.Esent">
-      <Version>5.0.200</Version>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Configurations\COBieUK2012.xml" />
+    <PackageReference Include="Xbim.IO.Esent" Version="5.0.200" />
   </ItemGroup>
 
   <ItemGroup>
