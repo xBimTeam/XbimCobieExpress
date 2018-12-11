@@ -208,6 +208,7 @@ namespace Xbim.CobieExpress.Exchanger
         /// <param name="configurationFile"></param>
         /// <param name="exchanger"></param>
         /// <param name="reportProgress"></param>
+        /// <param name="logger"></param>
         /// <param name="extId"></param>
         /// <param name="sysMode"></param>
         public COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter reportProgress, ILogger logger, OutPutFilters filter = null, string configurationFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types)

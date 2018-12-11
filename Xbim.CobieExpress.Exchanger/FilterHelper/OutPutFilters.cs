@@ -124,6 +124,9 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Constructor for default set configFileName = null, or passed in configuration file path
         /// </summary>
         /// <param name="configFileName"></param>
+        /// <param name="logger"></param>
+        /// <param name="roleFlags"></param>
+        /// <param name="setsToImport"></param>
         public OutPutFilters(string configFileName, ILogger logger, RoleFilter roleFlags, ImportSet setsToImport = ImportSet.All) : this(logger)
         {
             AppliedRoles = roleFlags;
@@ -139,6 +142,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <summary>
         /// Constructor to apply roles, and pass custom role OutPutFilters
         /// </summary>
+        /// <param name="logger"></param>
         /// <param name="roles">RoleFilter flags on roles to filter on</param>
         /// <param name="rolesFilter">Dictionary of role to OutPutFilters</param>
         public OutPutFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, OutPutFilters> rolesFilter = null) : this(logger)
@@ -290,12 +294,13 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
 
 
         #region Filter Methods
-       
+
         //TODO: Check function below, see if it works!
         /// <summary>
         /// filter on IfcObjectDefinition objects
         /// </summary>
         /// <param name="obj"></param>
+        /// <param name="checkType"></param>
         /// <returns>bool true = exclude</returns>
         public bool ObjFilter(IIfcObjectDefinition obj, bool checkType = true)
         {
@@ -510,6 +515,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Get the default filters for a single role
         /// </summary>
         /// <param name="role">RoleFilter with single flag(role) set</param>
+        /// <param name="log"></param>
         /// <returns>OutPutFilters</returns>
         public static OutPutFilters GetDefaults(RoleFilter role, ILogger log)
         {
