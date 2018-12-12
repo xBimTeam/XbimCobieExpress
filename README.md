@@ -24,7 +24,7 @@ As a result you can use all advanced data processing features of xBIM to work wi
 
 ### 1 Reading from an Excel COBie spreadsheet
 
-If you're familiar with *LINQ* or have every queried IFC models with XBIM, you'll be right at home quering
+If you're familiar with *LINQ* or have ever queried IFC models with XBIM, you'll be right at home querying
 COBie data sources. 
 
 ```csharp
@@ -48,7 +48,7 @@ COBie data sources.
 ### 2. Converting IFCs to COBIe spreadheets
 
 This is a more sophisticated example where we convert an IFC to COBie. Here we're using some 
-built in mappings, but these can all be over-ridden in the `IfcToCoBieExpressExchanger`
+built-in mappings, but these can all be over-ridden in the `IfcToCoBieExpressExchanger`
 constructor. See `OutPutFilters` and [CobieAttributes.config](Xbim.CobieExpress.Exchanger/IfcToCOBieExpress/CobieAttributes.config)
 
 ```csharp
@@ -92,7 +92,7 @@ constructor. See `OutPutFilters` and [CobieAttributes.config](Xbim.CobieExpress.
 ### Using the library
 
 To get started, the simplest approach is to add the `Xbim.COBieExpress.Exchanger` and `Xbim.COBieExpress.IO` 
-nuget package to your Visual Studio Project from Nuget or get the latest versions from our [MyGet feeds](nuget.config)
+nuget packages to your Visual Studio Project from Nuget or get the latest versions from our [MyGet feeds](nuget.config)
 
 Alternatively you can add the packages using Nuget's Package Manager Console and issuing the following command:
 
