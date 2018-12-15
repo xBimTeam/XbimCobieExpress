@@ -4,17 +4,18 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
-using Xbim.CobieExpress.IO.Resolvers;
+using Xbim.CobieExpress;
 using Xbim.Common;
 using Xbim.Common.Geometry;
 using Xbim.Common.Metadata;
 using Xbim.Common.Step21;
 using Xbim.IO;
+using Xbim.IO.CobieExpress.Resolvers;
 using Xbim.IO.Esent;
 using Xbim.IO.Memory;
 using Xbim.IO.Table;
 
-namespace Xbim.CobieExpress.IO
+namespace Xbim.IO.CobieExpress
 {
     public class CobieModel : IModel, IDisposable
     {

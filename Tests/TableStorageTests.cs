@@ -5,14 +5,13 @@ using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Xbim.CobieExpress;
-using Xbim.CobieExpress.IO;
-using Xbim.CobieExpress.IO.Resolvers;
 using Xbim.Common;
 using Xbim.Ifc;
 using Xbim.Ifc4.Kernel;
 using Xbim.Ifc4.MeasureResource;
 using Xbim.Ifc4.PropertyResource;
 using Xbim.Ifc4.SharedBldgElements;
+using Xbim.IO.CobieExpress;
 using Xbim.IO.Table;
 
 namespace Xbim.IO.Tests

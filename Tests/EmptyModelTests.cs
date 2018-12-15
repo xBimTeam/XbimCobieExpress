@@ -1,9 +1,8 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Xbim.CobieExpress.IO;
-using Xbim.CobieExpress;
 using System.IO;
 using Xbim.IO.Esent;
 using System;
+using Xbim.IO.CobieExpress;
 
 namespace Xbim.CobieExpress.Tests
 {

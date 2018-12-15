@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Text.RegularExpressions;
 using NPOI.SS.UserModel;
+using Xbim.CobieExpress;
 using Xbim.Common.Metadata;
 using Xbim.IO.Table;
 using Xbim.IO.Table.Resolvers;
 
-namespace Xbim.CobieExpress.IO.Resolvers
+namespace Xbim.IO.CobieExpress.Resolvers
 {
     public class AttributeTypeResolver: ITypeResolver
     {

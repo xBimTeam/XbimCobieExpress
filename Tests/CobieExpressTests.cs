@@ -5,9 +5,9 @@ using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Xbim.CobieExpress;
 using Xbim.CobieExpress.Exchanger;
-using Xbim.CobieExpress.IO;
 using Xbim.Common;
 using Xbim.Ifc;
+using Xbim.IO.CobieExpress;
 using Xbim.IO.Memory;
 
 
