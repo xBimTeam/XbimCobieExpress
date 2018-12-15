@@ -110,18 +110,18 @@ steps:
 - script: dotnet pack Xbim.CobieExpress.Exchanger/Xbim.CobieExpress.Exchanger.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
   displayName: 'Xbim.COBieExpress.Exchanger - pack'
 
-# Xbim.CobieExpress.IO
-- script: dotnet remove Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj reference ..\Xbim.CobieExpress\Xbim.CobieExpress.csproj ..\Xbim.IO.Table\Xbim.IO.Table.csproj
-  displayName: 'Xbim.COBieExpress.IO - remove project references'
+# Xbim.IO.CobieExpress
+- script: dotnet remove Xbim.IO.CobieExpress\Xbim.IO.CobieExpress.csproj reference ..\Xbim.CobieExpress\Xbim.CobieExpress.csproj ..\Xbim.IO.Table\Xbim.IO.Table.csproj
+  displayName: 'Xbim.IO.CobieExpress - remove project references'
 
-- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(packageversion)
-  displayName: 'Xbim.COBieExpress.IO - add package reference CobieExpress'
+- script: dotnet add Xbim.IO.CobieExpress\Xbim.IO.CobieExpress.csproj package Xbim.CobieExpress -s $(Build.BinariesDirectory) -v $(packageversion)
+  displayName: 'Xbim.IO.CobieExpress - add package reference CobieExpress'
   
-- script: dotnet add Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj package Xbim.IO.Table -s $(Build.BinariesDirectory) -v $(packageversion)
-  displayName: 'Xbim.COBieExpress.IO - add package reference IO.Table'
+- script: dotnet add Xbim.IO.CobieExpress\Xbim.IO.CobieExpress.csproj package Xbim.IO.Table -s $(Build.BinariesDirectory) -v $(packageversion)
+  displayName: 'Xbim.IO.CobieExpress - add package reference IO.Table'
 
-- script: dotnet pack Xbim.CobieExpress.IO/Xbim.CobieExpress.IO.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
-  displayName: 'Xbim.COBieExpress.IO - pack'
+- script: dotnet pack Xbim.IO.CobieExpress/Xbim.IO.CobieExpress.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
+  displayName: 'Xbim.IO.CobieExpress - pack'
 
   
 # Copy artifacts and Publish

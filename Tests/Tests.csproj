@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj" />
-    <ProjectReference Include="..\Xbim.CobieExpress.IO\Xbim.CobieExpress.IO.csproj" />
+    <ProjectReference Include="..\Xbim.IO.CobieExpress\Xbim.IO.CobieExpress.csproj" />
     <ProjectReference Include="..\Xbim.CobieExpress\Xbim.CobieExpress.csproj" />
     <ProjectReference Include="..\Xbim.IO.Table\Xbim.IO.Table.csproj" />
   </ItemGroup>

@@ -1,9 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net47</TargetFrameworks>
-    <AssemblyName>Xbim.CobieExpress.IO</AssemblyName>
-    <RootNamespace>Xbim.CobieExpress.IO</RootNamespace>
-
+    <AssemblyName>Xbim.IO.CobieExpress</AssemblyName>
+    <RootNamespace>Xbim.IO.CobieExpress</RootNamespace>
     <Title>XBIM COBie Express IO</Title>
     <Description>Provides support for serializing/deserializing a COBie EXPRESS model through an underlying IModel implementation</Description>
   </PropertyGroup>
@@ -14,11 +13,6 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Configurations\COBieUK2012.xml" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Xbim.CobieExpress\Xbim.CobieExpress.csproj" />
-    <ProjectReference Include="..\Xbim.IO.Table\Xbim.IO.Table.csproj" />
   </ItemGroup>
 
   <ItemGroup>
