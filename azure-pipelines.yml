@@ -154,3 +154,8 @@ steps:
     versioningScheme: byEnvVar
     versionEnvVar: packageversion
     
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact to drop'
+  inputs:
+    PathtoPublish: '$(build.artifactstagingdirectory)'
+  condition: succeededOrFailed()
