@@ -1,9 +1,7 @@
-
-
-Branch | Status
------- | -------
-Master | [![Build Status](https://dev.azure.com/xBIMTeam/xBIMToolkit/_apis/build/status/xBimTeam.XbimCobieExpress?branchName=master)](https://dev.azure.com/xBIMTeam/xBIMToolkit/_build/latest?definitionId=2&branchName=master)
-Develop | [![Build Status](https://dev.azure.com/xBIMTeam/xBIMToolkit/_apis/build/status/xBimTeam.XbimCobieExpress?branchName=develop)](https://dev.azure.com/xBIMTeam/xBIMToolkit/_build/latest?definitionId=2&branchName=develop)
+Branch | Build Status  | MyGet | NuGet
+------ | ------- | --- | --- |
+Master | [![Build Status](https://dev.azure.com/xBIMTeam/xBIMToolkit/_apis/build/status/xBimTeam.XbimCobieExpress?branchName=master)](https://dev.azure.com/xBIMTeam/xBIMToolkit/_build/latest?definitionId=2&branchName=master) | ![master](https://img.shields.io/myget/xbim-master/v/Xbim.IO.CobieExpress.svg) | ![](https://img.shields.io/nuget/v/Xbim.IO.CobieExpress.svg)
+Develop | [![Build Status](https://dev.azure.com/xBIMTeam/xBIMToolkit/_apis/build/status/xBimTeam.XbimCobieExpress?branchName=develop)](https://dev.azure.com/xBIMTeam/xBIMToolkit/_build/latest?definitionId=2&branchName=develop) | ![](https://img.shields.io/myget/xbim-develop/vpre/Xbim.IO.CobieExpress.svg) | -
 
 
 # Xbim COBie Express
