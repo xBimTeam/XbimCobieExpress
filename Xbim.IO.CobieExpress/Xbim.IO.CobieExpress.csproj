@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net47</TargetFrameworks>
+    <TargetFrameworks>net47;netstandard2.0</TargetFrameworks>
     <AssemblyName>Xbim.IO.CobieExpress</AssemblyName>
     <RootNamespace>Xbim.IO.CobieExpress</RootNamespace>
     <Title>XBIM COBie Express IO</Title>
     <Description>Provides support for serializing/deserializing a COBie EXPRESS model through an underlying IModel implementation</Description>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net47'">
-    <PackageReference Include="Xbim.IO.Esent" Version="5.0.200" />
+  <ItemGroup>
+    <EmbeddedResource Include="Configurations\COBieUK2012.xml" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Configurations\COBieUK2012.xml" />
+    <PackageReference Include="Xbim.Ifc" Version="5.0.248" />
   </ItemGroup>
 
   <ItemGroup>

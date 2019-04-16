@@ -9,9 +9,8 @@ using Xbim.Common;
 using Xbim.Common.Geometry;
 using Xbim.Common.Metadata;
 using Xbim.Common.Step21;
-using Xbim.IO;
+using Xbim.Ifc;
 using Xbim.IO.CobieExpress.Resolvers;
-using Xbim.IO.Esent;
 using Xbim.IO.Memory;
 using Xbim.IO.Table;
 
@@ -19,44 +18,73 @@ namespace Xbim.IO.CobieExpress
 {
     public class CobieModel : IModel, IDisposable
     {
-        private readonly bool _esentDB;
         private readonly IModel _model;
-        private EsentModel EsentModel { get { return _model as EsentModel; } }
-        private MemoryModel MemoryModel { get { return _model as MemoryModel; } }
 
         private static readonly IEntityFactory factory = new EntityFactoryCobieExpress();
 
+        /// <summary>
+        /// Provides access to model persistance capabilities
+        /// </summary>
+        protected IModelProvider ModelProvider
+        {
+            get;
+            private set;
+        }
+
+        /// <summary>
+        /// Factory to create ModelProvider instances. 
+        /// </summary>
+        /// <remarks>Consumers can use this instance of <see cref="IModelProviderFactory"/> to control the 
+        /// implementations of IModel it uses.
+        /// In particular you can tell the factory to always use MemoryModel, or Esent model, or a blend (Heuristic)
+        /// </remarks>
+        public static IModelProviderFactory ModelProviderFactory
+        {
+            get;
+            set;
+        } = new COBieModelProviderFactory();
+
         public CobieModel(IModel model)
         {
+            ModelProvider = ModelProviderFactory.CreateProvider();
+            
             _model = model;
 
-            if(EsentModel == null && MemoryModel == null) throw new ArgumentException("Model has to be either MemoryModel or EsentModel");
-
-            _esentDB = _model is EsentModel;
             InitEvents();
         }
 
         /// <summary>
         /// Creates memory model inside
         /// </summary>
-        public CobieModel() : this(new MemoryModel(factory))
+        public CobieModel() : this(CreateModel())
         {
-            _esentDB = false;
         }
 
         /// <summary>
         /// Creates EsentModel inside
         /// </summary>
         /// <param name="esentDbFile"></param>
-        public CobieModel(string esentDbFile): this(EsentModel.CreateModel(factory, esentDbFile))
+        public CobieModel(string esentDbFile): this(CreateModel(esentDbFile))
         {
-            _esentDB = true;
+        }
+
+        private static IModel CreateModel(string file = "")
+        {
+            var provider = ModelProviderFactory.CreateProvider();
+            if (string.IsNullOrEmpty(file))
+            {
+                return provider.Create(XbimSchemaVersion.Cobie2X4, XbimStoreType.InMemoryModel);
+            }
+            else
+            { 
+                return provider.Create(XbimSchemaVersion.Cobie2X4, file);
+            }
         }
 
         public object Tag { get; set; }
 
         /// <summary>
-        /// This constructor only opens an in memory model
+        /// This factory only opens an in memory model
         /// </summary>
         /// <param name="input"></param>
         /// <param name="streamSize"></param>
@@ -71,70 +99,76 @@ namespace Xbim.IO.CobieExpress
 
         public static CobieModel OpenStep21(string input, bool esentDB = false)
         {
-            if (esentDB)
-            {
-                var db = Path.ChangeExtension(input, ".xbim");
-                var esent = new EsentModel(factory);
-                esent.CreateFrom(input, db, null, true, true, StorageType.Stp);
-                return new CobieModel(esent);
-            }
 
-            var model = new MemoryModel(factory);
-            model.LoadStep21(input);
+            var provider = ModelProviderFactory.CreateProvider();
+            XbimSchemaVersion ifcVersion = GetSchemaVersion(input, provider);
+
+            var model = provider.Open(input, ifcVersion);
+
             return new CobieModel(model);
         }
 
-        public static CobieModel OpenStep21(Stream input, long streamSize,bool esentDB = false)
+        public static CobieModel OpenStep21(Stream input, long streamSize, bool esentDB = false)
         {
-            if (esentDB)
-            {
-                var esent = new EsentModel(factory);
-                esent.CreateFrom(input, streamSize, StorageType.Stp, "temp.xbim", null, true);
-                return new CobieModel(esent);
-            }
+            var provider = ModelProviderFactory.CreateProvider();
+            var modelType = esentDB ? XbimModelType.EsentModel : XbimModelType.MemoryModel;
+            // TODO: Should determine the schema. not hardwire
+            var model = provider.Open(input, StorageType.Stp, XbimSchemaVersion.Ifc4, modelType);
 
-            var model = new MemoryModel(factory);
-            model.LoadStep21(input, streamSize);
             return new CobieModel(model);
         }
 
         public void SaveAsStep21(string file)
         {
-            if (_esentDB)
+            using (var fileStream = File.Create(file))
             {
-                EsentModel.SaveAs(file, StorageType.Stp);
-                return;
-            }
-
-            using (var stream = File.Create(file))
-            {
-                MemoryModel.SaveAsStep21(stream);
-                stream.Close();
+                this.SaveAsIfc(fileStream);
             }
         }
 
         public static CobieModel OpenEsent(string esentDB)
         {
-            var model = new EsentModel(factory);
-            model.Open(esentDB, XbimDBAccess.ReadWrite);
+            var provider = ModelProviderFactory.CreateProvider();
+
+            var model = provider.Open(esentDB, XbimSchemaVersion.Cobie2X4, accessMode: XbimDBAccess.ReadWrite);
+
             return new CobieModel(model);
         }
 
         public void SaveAsEsent(string dbName)
         {
-            if (EsentModel != null && string.Equals(EsentModel.DatabaseName, dbName, StringComparison.OrdinalIgnoreCase))
+            ModelProvider.Persist(this, dbName);
+        }
+
+        public void SaveAsStep21Zip(string file)
+        {
+            using (var fileStream = File.Create(file))
             {
-                //it is ESENT model already and all changes are persisted automatically.
-            }
-            else
-            {
-                using (var esent = new EsentModel(factory))
-                {
-                    esent.CreateFrom(_model, dbName);
-                    esent.Close();
-                }
+                this.SaveAsIfcZip(fileStream, "Cobie.stp", StorageType.Stp);
             }
         }
+
+        public static CobieModel OpenStep21Zip(string input, bool esentDB = false)
+        {
+            var provider = ModelProviderFactory.CreateProvider();
+
+            var model = provider.Open(input, XbimSchemaVersion.Cobie2X4);
+
+            return new CobieModel(model);
+        }
+
+        private static XbimSchemaVersion GetSchemaVersion(string esentDB, IModelProvider provider)
+        {
+            var ifcVersion = provider.GetXbimSchemaVersion(esentDB);
+            if (ifcVersion == XbimSchemaVersion.Unsupported)
+            {
+                throw new FileLoadException(esentDB + " is not a valid IFC file format, ifc, ifcxml, ifczip and xBIM are supported.");
+            }
+
+            return ifcVersion;
+        }
+
+
 
         public static ModelMapping GetMapping()
         {
@@ -218,36 +252,7 @@ namespace Xbim.IO.CobieExpress
             return storage;
         }
 
-        public void SaveAsStep21Zip(string file)
-        {
-            if (_esentDB)
-            {
-                EsentModel.SaveAs(file, StorageType.StpZip);
-                return;
-            }
-
-            using (var stream = File.Create(file))
-            {
-                MemoryModel.SaveAsStep21Zip(stream);
-                stream.Close();
-            }
-        }
-
-        public static CobieModel OpenStep21Zip(string input, bool esentDB = false)
-        {
-            if (esentDB)
-            {
-                var db = Path.ChangeExtension(input, ".xcobie");
-                var esent = new EsentModel(factory);
-                esent.CreateFrom(input, db, null, true, true, StorageType.StpZip);
-                return new CobieModel(esent);
-            }
-
-            var model = new MemoryModel(factory);
-            model.LoadZip(input);
-            return new CobieModel(model);
-        }
-
+        
         public void InsertCopy(IEnumerable<CobieComponent> components, bool keepLabels, XbimInstanceHandleMap mappings)
         {
             foreach (var component in components)

@@ -3,18 +3,29 @@ using System.IO;
 using Xbim.IO.Esent;
 using System;
 using Xbim.IO.CobieExpress;
+using Xbim.Ifc;
 
 namespace Xbim.CobieExpress.Tests
 {
     [TestClass]
     public class EmptyModelTests
     {
+
+        [ClassInitialize]
+        public static void Initialize(TestContext testContext)
+        {
+            IfcStore.ModelProviderFactory.UseHeuristicModelProvider();
+        }
+
+
         [TestMethod]
         public void EsentInCobieModelTest()
         {
+
             string file = Guid.NewGuid() + ".xbim";
             try
             {
+                
                 using (var model = new CobieModel(file))
                 {
                     using (var txn = model.BeginTransaction("Creation"))
@@ -114,7 +125,7 @@ namespace Xbim.CobieExpress.Tests
 
         private const string esentName = "test.xbim";
         private const string stpName = "test.stp";
-        private const string stpZipName = "test.stpx";
+        private const string stpZipName = "test.stpzip";
         private const string wallName = "Wall A";
 
         private void CreateSimpleModel(CobieModel model)
