@@ -70,7 +70,11 @@ namespace Xbim.CobieExpress.Exchanger
 
             //Add spaces
             var ifcSpatialStructureElements = spaces != null ? spaces.ToList() : new List<IIfcSpatialElement>();
-            ifcSpatialStructureElements.Add(ifcSpatialStructureElement);
+
+            // Previously used to create 'PlaceholderSpaces' but has been removed from CObieExpress.
+            // https://github.com/xBimTeam/XbimExchange/commit/1ef25829a1a8d39a76f70010bedf06f1418954ad 
+
+            //ifcSpatialStructureElements.Add(ifcSpatialStructureElement);
 
             foreach (var element in ifcSpatialStructureElements)
             {

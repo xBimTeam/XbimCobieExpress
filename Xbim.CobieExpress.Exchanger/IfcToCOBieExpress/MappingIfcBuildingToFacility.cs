@@ -61,10 +61,13 @@ namespace Xbim.CobieExpress.Exchanger
 
                 var storeys = ifcBuilding.BuildingStoreys;
                 var cobieFloors = storeys.Cast<IIfcSpatialStructureElement>().ToList();
-                if (ifcSite != null)
-                    cobieFloors.Add(ifcSite);
-                Exchanger.ReportProgress.IncrementAndUpdate();
-                cobieFloors.Add(ifcBuilding);
+                // Previously used to create 'PlaceholderSpaces' but has been removed from CObieExpress.
+                // https://github.com/xBimTeam/XbimExchange/commit/1ef25829a1a8d39a76f70010bedf06f1418954ad 
+
+                //if (ifcSite != null)
+                //    cobieFloors.Add(ifcSite);
+                //Exchanger.ReportProgress.IncrementAndUpdate();
+                //cobieFloors.Add(ifcBuilding);
                 Exchanger.ReportProgress.IncrementAndUpdate();
                 Exchanger.ReportProgress.NextStage(cobieFloors.Count, 50); //finish progress at 50% 
                 var floorMappings = Exchanger.GetOrCreateMappings<MappingIfcSpatialElementToFloor>();
