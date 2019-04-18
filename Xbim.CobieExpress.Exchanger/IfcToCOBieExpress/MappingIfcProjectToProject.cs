@@ -14,7 +14,11 @@ namespace Xbim.CobieExpress.Exchanger
             target.ExternalId = helper.ExternalEntityIdentity(source);
             target.AltExternalId = source.GlobalId;
             target.Name = source.Name;
-            target.Description = source.Description;
+            target.Description = source.LongName;
+            if(string.IsNullOrWhiteSpace(target.Description))
+            {
+                target.Description = source.Description;
+            }
             return target;
         }
 

@@ -13,8 +13,12 @@ namespace Xbim.CobieExpress.Exchanger
             site.ExternalObject = helper.GetExternalObject(ifcSite);
             site.ExternalId = helper.ExternalEntityIdentity(ifcSite);
             site.AltExternalId = ifcSite.GlobalId;
-            site.Name = ifcSite.LongName;
-            site.Description = ifcSite.Description;
+            site.Name = ifcSite.Name;
+            site.Description = ifcSite.LongName;
+            if(string.IsNullOrWhiteSpace(site.Description))
+            {
+                site.Description = ifcSite.Description;
+            }
             return site;
         }
 
