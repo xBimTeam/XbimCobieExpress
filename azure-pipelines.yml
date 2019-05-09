@@ -10,9 +10,7 @@ trigger:
     - develop
   paths:
     exclude:
-    - README.md
-    - CHANGELOG.md
-    - CONTRIBUTING.md
+    - *.md
 
 pool:
   vmImage: 'VS2017-Win2016'
