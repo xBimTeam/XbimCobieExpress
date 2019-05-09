@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NPOI" Version="2.4.0" />
-    <PackageReference Include="Xbim.Common" Version="5.0.248" />
+    <PackageReference Include="Xbim.Common" Version="5.0.252-develop" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

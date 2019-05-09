@@ -9,7 +9,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
     <PackageReference Include="MSTest.TestAdapter" Version="1.3.2" />
     <PackageReference Include="MSTest.TestFramework" Version="1.3.2" />
-    <PackageReference Include="Xbim.IO.Esent" Version="5.0.248" />
+    <PackageReference Include="Xbim.IO.Esent" Version="5.0.252-develop" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj" />
