@@ -10,7 +10,8 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger.FilterHelper
 {
-    public class OutPutFilters
+
+    public class OutputFilters
     {
         private readonly ILogger _log;
 
@@ -76,7 +77,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Temp storage for role OutPutFilters
         /// </summary>
         [XmlIgnore][JsonIgnore]
-        private Dictionary<RoleFilter, OutPutFilters> RolesFilterHolder { get; set; }
+        private Dictionary<RoleFilter, OutputFilters> RolesFilterHolder { get; set; }
 
         /// <summary>
         /// Nothing set in RolesFilterHolder
@@ -95,7 +96,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <summary>
         /// Empty constructor for Serialize
         /// </summary>
-        public OutPutFilters(ILogger logger)
+        public OutputFilters(ILogger logger)
         {
             _log = logger;
             //will flip filter result from true to false
@@ -117,7 +118,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             CommonFilter = new PropertyFilter();
 
             //role storage
-            RolesFilterHolder = new Dictionary<RoleFilter, OutPutFilters>();
+            RolesFilterHolder = new Dictionary<RoleFilter, OutputFilters>();
         }
 
         /// <summary>
@@ -127,15 +128,19 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="logger"></param>
         /// <param name="roleFlags"></param>
         /// <param name="setsToImport"></param>
-        public OutPutFilters(string configFileName, ILogger logger, RoleFilter roleFlags, ImportSet setsToImport = ImportSet.All) : this(logger)
+        public OutputFilters(string configFileName, ILogger logger, RoleFilter roleFlags, ImportSet setsToImport = ImportSet.All) : this(logger)
         {
             AppliedRoles = roleFlags;
             FiltersHelperInit(configFileName, setsToImport);
         }
 
-        public OutPutFilters(ILogger logger, RoleFilter roleFlags) : this(logger)
+        public OutputFilters(ILogger logger, RoleFilter roleFlags) : this(logger)
         {
             AppliedRoles = roleFlags;
+            if(roleFlags.HasMultipleFlags())
+            {
+                throw new InvalidOperationException("Cannot construct with multiple roles. Use OutputFilters.Merge to add additional roles");
+            }
             FiltersHelperInit(roleFlags.ToResourceName());
         }
 
@@ -145,7 +150,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="logger"></param>
         /// <param name="roles">RoleFilter flags on roles to filter on</param>
         /// <param name="rolesFilter">Dictionary of role to OutPutFilters</param>
-        public OutPutFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, OutPutFilters> rolesFilter = null) : this(logger)
+        public OutputFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, OutputFilters> rolesFilter = null) : this(logger)
         {
             ApplyRoleFilters(roles, false, rolesFilter);
         }
@@ -251,7 +256,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Copy the OutPutFilters
         /// </summary>
         /// <param name="copyFilter">OutPutFilters to copy </param>
-        public void Copy(OutPutFilters copyFilter)
+        public void Copy(OutputFilters copyFilter)
         {
             AppliedRoles = copyFilter.AppliedRoles;
 
@@ -332,7 +337,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Merge OutPutFilters
         /// </summary>
         /// <param name="mergeFilter">OutPutFilters</param>
-        public void Merge(OutPutFilters mergeFilter)
+        public void Merge(OutputFilters mergeFilter)
         {
             IfcProductFilter.MergeInc(mergeFilter.IfcProductFilter);
             IfcTypeObjectFilter.MergeInc(mergeFilter.IfcTypeObjectFilter);
@@ -355,7 +360,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="roles">MergeRoles, Flag enum with one or more roles</param>
         /// <param name="append">true = add, false = overwrite existing </param>
         /// <param name="rolesFilter">Dictionary of roles to OutPutFilters to use for merge, overwrites current assigned dictionary</param>
-        public void ApplyRoleFilters(RoleFilter roles, bool append = false, Dictionary<RoleFilter, OutPutFilters> rolesFilter = null)
+        public void ApplyRoleFilters(RoleFilter roles, bool append = false, Dictionary<RoleFilter, OutputFilters> rolesFilter = null)
         {
             if (rolesFilter != null)
             {
@@ -364,7 +369,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
 
             var init = append && !IsEmpty();
             
-            OutPutFilters mergeFilter = null;
+            OutputFilters mergeFilter = null;
             foreach (RoleFilter role in Enum.GetValues(typeof(RoleFilter)))
             {
                 if (!roles.HasFlag(role)) 
@@ -394,7 +399,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 mergeFilter = null;
             }
             //add the default property filters
-            OutPutFilters defaultPropFilters = new OutPutFilters(null, _log, RoleFilter.Unknown, ImportSet.PropertyFilters);
+            OutputFilters defaultPropFilters = new OutputFilters(null, _log, RoleFilter.Unknown, ImportSet.PropertyFilters);
             Merge(defaultPropFilters);
 
             //save the applied roles at end as this.Copy(mergeFilter) would set to first role in RoleFilter
@@ -407,18 +412,18 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Set filters for Federated Model, referenced models
         /// </summary>
         /// <param name="modelRoleMap"></param>
-        public Dictionary<T, OutPutFilters> SetFedModelFilter<T>(Dictionary<T, RoleFilter> modelRoleMap)
+        public Dictionary<T, OutputFilters> SetFedModelFilter<T>(Dictionary<T, RoleFilter> modelRoleMap)
         {
-            Dictionary<T, OutPutFilters> modelFilterMap = new Dictionary<T, OutPutFilters>();
+            Dictionary<T, OutputFilters> modelFilterMap = new Dictionary<T, OutputFilters>();
 
             //save this filter before working out all fed models
-            OutPutFilters saveFilter = new OutPutFilters(_log);
+            OutputFilters saveFilter = new OutputFilters(_log);
             saveFilter.Copy(this);
 
             foreach (var item in modelRoleMap)
             {
                 ApplyRoleFilters(item.Value);
-                OutPutFilters roleFilter = new OutPutFilters(_log);
+                OutputFilters roleFilter = new OutputFilters(_log);
                 roleFilter.Copy(this);
                 modelFilterMap.Add(item.Key, roleFilter);
             }
@@ -437,7 +442,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 string roleFile = role.ToResourceName();
                 if (!string.IsNullOrEmpty(roleFile))
                 {
-                    RolesFilterHolder[role] = new OutPutFilters(roleFile, _log, role);
+                    RolesFilterHolder[role] = new OutputFilters(roleFile, _log, role);
                 }
             }
         }
@@ -464,7 +469,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                     var roleFile = role.ToResourceName();
                     if (!string.IsNullOrEmpty(roleFile))
                     {
-                        RolesFilterHolder[role] = new OutPutFilters(roleFile, _log, role);
+                        RolesFilterHolder[role] = new OutputFilters(roleFile, _log, role);
                     }
                 }
             }
@@ -491,7 +496,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="role">RoleFilter with single flag(role) set</param>
         /// <returns>OutPutFilters</returns>
-        public OutPutFilters GetRoleFilter(RoleFilter role)
+        public OutputFilters GetRoleFilter(RoleFilter role)
         {
             if ((role & (role - 1)) != 0)
             {
@@ -517,7 +522,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="role">RoleFilter with single flag(role) set</param>
         /// <param name="log"></param>
         /// <returns>OutPutFilters</returns>
-        public static OutPutFilters GetDefaults(RoleFilter role, ILogger log)
+        public static OutputFilters GetDefaults(RoleFilter role, ILogger log)
         {
             if ((role & (role - 1)) != 0)
             {
@@ -525,7 +530,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             }
             var filterFile = role.ToResourceName();
             return !string.IsNullOrEmpty(filterFile) 
-                ? new OutPutFilters(filterFile, log, role) 
+                ? new OutputFilters(filterFile, log, role) 
                 : null;
         }
 
@@ -537,7 +542,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="role">RoleFilter, single flag RoleFilter</param>
         /// <param name="filter">OutPutFilters to assign to role</param>
         /// <remarks>Does not apply filter to this object, used ApplyRoleFilters after setting the RolesFilterHolder items </remarks>
-        public void AddRoleFilterHolderItem(RoleFilter role, OutPutFilters filter)
+        public void AddRoleFilterHolderItem(RoleFilter role, OutputFilters filter)
         {
             if ((role & (role - 1)) != 0)
             {
@@ -557,7 +562,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="filename">FileInfo</param>
         public void SerializeXml(FileInfo filename)
         {
-            var writer = new XmlSerializer(typeof(OutPutFilters));
+            var writer = new XmlSerializer(typeof(OutputFilters));
             using (var file = new StreamWriter(filename.FullName))
             {
                 writer.Serialize(file, this);
@@ -569,13 +574,13 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="filename">FileInfo</param>
         /// <returns>OutPutFilters</returns>
-        public static OutPutFilters DeserializeXml(FileInfo filename)
+        public static OutputFilters DeserializeXml(FileInfo filename)
         {
-            OutPutFilters result;
-            var writer = new XmlSerializer(typeof(OutPutFilters));
+            OutputFilters result;
+            var writer = new XmlSerializer(typeof(OutputFilters));
             using (var file = new StreamReader(filename.FullName))
             {
-                result =  (OutPutFilters)writer.Deserialize(file);
+                result =  (OutputFilters)writer.Deserialize(file);
             }
             return result;
         }
@@ -598,17 +603,37 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="filename">FileInfo</param>
         /// <returns>OutPutFilters</returns>
-        public static OutPutFilters DeserializeJson(FileInfo filename)
+        public static OutputFilters DeserializeJson(FileInfo filename)
         {
-            OutPutFilters result;
+            OutputFilters result;
             var writer = new JsonSerializer();
             using (var file = new StreamReader(filename.FullName))
             {
-                result = (OutPutFilters)writer.Deserialize(file, typeof(OutPutFilters));
+                result = (OutputFilters)writer.Deserialize(file, typeof(OutputFilters));
             }
             return result;
         }
 
         #endregion
+    }
+
+    [Obsolete("Use OutputFilters instead")]
+    public class OutPutFilters : OutputFilters
+    {
+        public OutPutFilters(ILogger logger) : base(logger)
+        {
+        }
+
+        public OutPutFilters(ILogger logger, RoleFilter roleFlags) : base(logger, roleFlags)
+        {
+        }
+
+        public OutPutFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, OutputFilters> rolesFilter = null) : base(logger, roles, rolesFilter)
+        {
+        }
+
+        public OutPutFilters(string configFileName, ILogger logger, RoleFilter roleFlags, ImportSet setsToImport = ImportSet.All) : base(configFileName, logger, roleFlags, setsToImport)
+        {
+        }
     }
 }

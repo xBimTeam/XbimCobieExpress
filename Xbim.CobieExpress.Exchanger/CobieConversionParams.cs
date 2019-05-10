@@ -13,7 +13,7 @@ namespace Xbim.CobieExpress.Exchanger
         public Func<IModel> NewCobieModel { get; set; }
         public EntityIdentifierMode ExtId { get; set; }
         public SystemExtractionMode SysMode { get; set; }
-        public OutPutFilters Filter { get; set; }
+        public OutputFilters Filter { get; set; }
         public string ConfigFile { get; set; }
         public ReportProgressDelegate ReportProgress { get; set; }
     }

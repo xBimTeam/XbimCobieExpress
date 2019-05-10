@@ -130,7 +130,7 @@ namespace Xbim.CobieExpress.Exchanger
 
         #region Filters
 
-        private OutPutFilters Filter  { get; set; }
+        private OutputFilters Filter  { get; set; }
 
         #endregion
 
@@ -211,7 +211,7 @@ namespace Xbim.CobieExpress.Exchanger
         /// <param name="logger"></param>
         /// <param name="extId"></param>
         /// <param name="sysMode"></param>
-        public COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter reportProgress, ILogger logger, OutPutFilters filter = null, string configurationFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types)
+        public COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter reportProgress, ILogger logger, OutputFilters filter = null, string configurationFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types)
         {
             Logger = logger;
             _categoryMapping = exchanger.GetOrCreateMappings<MappingIfcClassificationReferenceToCategory>();
@@ -223,7 +223,7 @@ namespace Xbim.CobieExpress.Exchanger
 
             //set props
             _configFileName = configurationFile;
-            Filter = filter  ?? new OutPutFilters(Logger);
+            Filter = filter  ?? new OutputFilters(Logger);
             _model = exchanger.SourceRepository;
             Target = exchanger.TargetRepository;
             Exchanger = exchanger;
