@@ -7,8 +7,8 @@
     <Description>Provides support for spreadsheet serialization/deserialization of data stored in xBIM model generated from EXPRESS schema</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NPOI" Version="2.4.0" />
-    <PackageReference Include="Xbim.Common" Version="5.0.248" />
+    <PackageReference Include="NPOI" Version="2.4.1" />
+    <PackageReference Include="Xbim.Common" Version="5.1.257" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

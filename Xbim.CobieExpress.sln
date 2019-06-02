@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2042
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.IO.Table", "Xbim.IO.Table\Xbim.IO.Table.csproj", "{679E8F2A-80EC-4619-BF2E-6E4F4C30FB13}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress", "Xbim.CobieExpress\Xbim.CobieExpress.csproj", "{47E55E60-7E7F-4B16-8BD0-C4216A36CEE0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{A36024FA-B358-46F9-80EE-D65F7C77B2C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.Tests", "Tests\Xbim.CobieExpress.Tests.csproj", "{A36024FA-B358-46F9-80EE-D65F7C77B2C3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Xbim.CobieExpress.Exchanger", "Xbim.CobieExpress.Exchanger\Xbim.CobieExpress.Exchanger.csproj", "{F3D7E771-3F0B-431E-B8D1-9C4A5592652A}"
 EndProject

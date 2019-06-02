@@ -22,7 +22,7 @@ variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
   major: 5
-  minor: 0
+  minor: 1
   # creates a counter called cobieversion and seeds it at 100 and then assigns the value to a variable named buildno.
   buildNo: $[counter('cobieversion', 100)]
   

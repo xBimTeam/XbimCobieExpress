@@ -16,7 +16,7 @@ namespace Xbim.CobieExpress.Exchanger
         /// <summary>
         /// Instantiates a new IIfcToCOBieLiteUkExchanger class.
         /// </summary>
-        public IfcToCoBieExpressExchanger(IModel source, IModel target, ReportProgressDelegate reportProgress = null, OutPutFilters filter = null, string configFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types, bool classify = false) 
+        public IfcToCoBieExpressExchanger(IModel source, IModel target, ReportProgressDelegate reportProgress = null, OutputFilters filter = null, string configFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types, bool classify = false) 
             : base(source, target)
         {
             // make sure there are some loggers in the models
