@@ -7,10 +7,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.6.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.1.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.1.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="1.4.0" />
     <PackageReference Include="MSTest.TestFramework" Version="1.4.0" />
-    <PackageReference Include="Xbim.IO.Esent" Version="5.0.252-develop" />
+    <PackageReference Include="Xbim.IO.Esent" Version="5.1.257" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
       <PrivateAssets>all</PrivateAssets>
