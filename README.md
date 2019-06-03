@@ -47,7 +47,7 @@ COBie data sources.
 
 This is a more sophisticated example where we convert an IFC to COBie. Here we're using some 
 built-in mappings, but these can all be over-ridden in the `IfcToCoBieExpressExchanger`
-constructor. See `OutPutFilters` and [CobieAttributes.config](Xbim.CobieExpress.Exchanger/IfcToCOBieExpress/CobieAttributes.config)
+constructor. See `OutputFilters` and [CobieAttributes.config](Xbim.CobieExpress.Exchanger/IfcToCOBieExpress/CobieAttributes.config)
 
 ```csharp
     const string input = @"SampleHouse4.ifc";
@@ -104,8 +104,7 @@ PM> Install-Package Xbim.COBieExpress.IO
 ## Building yourself
 
 You will need Visual Studio 2017 or newer to compile the Solution. 
-Prior versions of Visual Studio may work, but we'd recommend 2017 where possible.
-The [free VS 2017 Community Edition](https://visualstudio.microsoft.com/downloads/) should work fine. 
+The [free VS 2019 Community Edition](https://visualstudio.microsoft.com/downloads/) should work fine. 
 All projects target .NET Framework *net47*, as well as *netstandard2.0*, which should 
 permit limited trials of XBIM with .NET Core / Mono etc.
 
