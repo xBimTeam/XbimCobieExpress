@@ -5,10 +5,18 @@
     <RootNamespace>Xbim.IO.CobieExpress</RootNamespace>
     <Title>XBIM COBie Express IO</Title>
     <Description>Provides support for serializing/deserializing a COBie EXPRESS model through an underlying IModel implementation</Description>
+    <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Configurations\COBieUK2012.xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
