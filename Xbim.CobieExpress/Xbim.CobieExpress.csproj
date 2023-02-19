@@ -1,17 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net47;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
     <AssemblyName>Xbim.CobieExpress</AssemblyName>
     <RootNamespace>Xbim.CobieExpress</RootNamespace>
     <Title>XBIM COBie Express</Title>
     <Description>Provides support for the COBie implemented as EXPRESS schema on top of xBIM Toolkit.
     
     Allows COBie data sources to be read, queried, created and updated in similar manner to how IFC is with Xbim.Ifc4/Ifc2x3</Description>
+    <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Xbim.Common" Version="5.1.274" />
+    <PackageReference Include="Xbim.Common" Version="5.1.341" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 </Project>

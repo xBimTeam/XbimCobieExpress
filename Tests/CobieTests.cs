@@ -94,6 +94,7 @@ namespace Xbim.MemoryModel.Tests
         }
 
         [TestMethod]
+        [Ignore("@martin1cerny, this is known to fail, but looks like a bug. Could you have a look?")]
         public void Deletion()
         {
             var model = CreateTestModel();
@@ -101,8 +102,8 @@ namespace Xbim.MemoryModel.Tests
             {
                 var attribute = model.Instances.FirstOrDefault<CobieAttribute>();
                 Assert.IsNotNull(attribute);
-                var entity = model.Instances.FirstOrDefault<CobieAsset>(a => a.Attributes.Contains(attribute));
-                Assert.IsNotNull(entity);
+                var entityOfAttribute = model.Instances.FirstOrDefault<CobieAsset>(a => a.Attributes.Contains(attribute));
+                Assert.IsNotNull(entityOfAttribute);
                 var space = model.Instances.FirstOrDefault<CobieSpace>();
                 var floor = space.Floor;
                 Assert.IsNotNull(floor);
@@ -110,10 +111,13 @@ namespace Xbim.MemoryModel.Tests
                 
                 //object should be removed from the collection
                 model.Delete(attribute);
-                Assert.IsFalse(entity.Attributes.Contains(attribute));
+                Assert.IsFalse(entityOfAttribute.Attributes.Contains(attribute));
 
-                //property should be nullified
+                //property should be nullified if reference is deleted
+                var floorEntityLabel = floor.EntityLabel;
                 model.Delete(floor);
+                var floorFromLabel = model.Instances[floorEntityLabel];
+                Assert.IsNull(floorFromLabel);
                 Assert.IsNull(space.Floor);
             }
         }

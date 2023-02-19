@@ -811,13 +811,13 @@ namespace Xbim.IO.Table
                 case FontWeight.Normal:
                     break;
                 case FontWeight.Bold:
-                    font.Boldweight = (short) FontBoldWeight.Bold;
+                    font.IsBold = true;
                     break;
                 case FontWeight.Italics:
                     font.IsItalic = true;
                     break;
                 case FontWeight.BoldItalics:
-                    font.Boldweight = (short) FontBoldWeight.Bold;
+                    font.IsBold = true;
                     font.IsItalic = true;
                     break;
                 default:
