@@ -1,11 +1,8 @@
 ﻿using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
+using Xbim.Common.Configuration;
 using Xunit;
 
 namespace Tests
@@ -13,7 +10,7 @@ namespace Tests
     public class OutputFiltersTests
     {
 
-        private readonly ILogger logger = Xbim.Common.XbimLogging.CreateLogger<OutputFilters>();
+        private readonly ILogger logger = XbimServices.Current.CreateLogger<OutputFilters>();
 
         private readonly string productKey = nameof(Xbim.Ifc4.SharedBldgServiceElements.IfcEnergyConversionDevice).ToUpper();
         private readonly string predefinedTypeKey = nameof(Xbim.Ifc4.BuildingControlsDomain.IfcSensorType).ToUpper();

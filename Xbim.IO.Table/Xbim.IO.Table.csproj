@@ -9,7 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NPOI" Version="2.6.0" />
-    <PackageReference Include="Xbim.Common" Version="5.1.341" />
+    <PackageReference Include="Xbim.Common" Version="5.9.406-develop" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
