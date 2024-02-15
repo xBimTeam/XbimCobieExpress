@@ -15,16 +15,16 @@ trigger:
     - CONTRIBUTING.md
 
 pool:
-  vmImage: 'windows-2019'
+  vmImage: 'windows-latest'
 
 variables:
   solution: '**.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
-  major: 5
-  minor: 1
-  # creates a counter called cobieversion and seeds it at 100 and then assigns the value to a variable named buildno.
-  buildNo: $[counter('cobieversion', 100)]
+  major: 6
+  minor: 0
+  # creates a counter called cobieversion and seeds it at 1 and then assigns the value to a variable named buildno.
+  buildNo: $[counter('cobieversion', 1)]
   
 name: $(BuildDefinitionName)_$(SourceBranchName)_$(major).$(minor).$(buildNo)
 
@@ -55,9 +55,13 @@ steps:
   condition: ne(variables['Build.SourceBranch'], 'refs/heads/master')
 
 - task: NuGetToolInstaller@0
-  displayName: 'Use NuGet 4.6.2'
+  displayName: 'Install NuGet'
+
+- task: UseDotNet@2
+  displayName: 'Use .NET Core sdk'
   inputs:
-    versionSpec: '4.6.2'
+    packageType: sdk
+    version: 8.x
 
 # Version .NET Core project files
 # Description - Applies a version to a .NET Core assembly via the .csproj files based on the build number. 
@@ -98,6 +102,7 @@ steps:
     projects: '**/*Tests/*.csproj'
     arguments: '--configuration $(BuildConfiguration) --collect "Code coverage"'
 
+# todo: replace with standard 'dotnet pack'
 
 # COBie EXPRESS schema
 - script: dotnet pack Xbim.CobieExpress/Xbim.CobieExpress.csproj -c $(BuildConfiguration) -o $(Build.BinariesDirectory) /p:PackageVersion=$(packageversion)
