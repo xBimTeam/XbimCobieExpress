@@ -22,7 +22,9 @@ namespace Tests
         {
             const string input = @"SampleHouse4.ifc";
             var inputInfo = new FileInfo(input);
+#pragma warning disable CS0618 // Type or member is obsolete  TODO: Needs correct non-obsolete signature in Essentials - defaults to ILogger
             var ifc = MemoryModel.OpenReadStep21(input);
+#pragma warning restore CS0618 // Type or member is obsolete
             var inputCount = ifc.Instances.Count;
 
             var w = new Stopwatch();

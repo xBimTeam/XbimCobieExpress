@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xbim.CobieExpress;
 using Xbim.Common;
+using Xbim.Common.Configuration;
 using Xbim.Common.Geometry;
 using Xbim.Common.Metadata;
 using Xbim.Common.Step21;
@@ -22,13 +24,14 @@ namespace Xbim.IO.CobieExpress
 
         private static readonly IEntityFactory factory = new EntityFactoryCobieExpress();
 
+        private static Lazy<IModelProvider> lazyModelProvider = new Lazy<IModelProvider>(() => BuildModelProvider());
+
         /// <summary>
         /// Provides access to model persistance capabilities
         /// </summary>
-        protected IModelProvider ModelProvider
+        protected static IModelProvider ModelProvider
         {
-            get;
-            private set;
+            get => lazyModelProvider.Value;
         }
 
         /// <summary>
@@ -38,19 +41,27 @@ namespace Xbim.IO.CobieExpress
         /// implementations of IModel it uses.
         /// In particular you can tell the factory to always use MemoryModel, or Esent model, or a blend (Heuristic)
         /// </remarks>
+        [Obsolete("ModelProviders are now created via the XbimServices.Current.ServiceProvider")]
         public static IModelProviderFactory ModelProviderFactory
         {
             get;
             set;
-        } = new COBieModelProviderFactory();
+        }
 
         public CobieModel(IModel model)
         {
-            ModelProvider = ModelProviderFactory.CreateProvider();
-            
+
             _model = model;
 
             InitEvents();
+        }
+
+        static CobieModel()
+        {
+            if(!XbimServices.Current.IsBuilt)
+            {
+                XbimServices.Current.ConfigureServices(cfg => cfg.AddXbimToolkit(builder => builder.AddHeuristicModel()));
+            }
         }
 
         /// <summary>
@@ -68,9 +79,27 @@ namespace Xbim.IO.CobieExpress
         {
         }
 
+
+        private static IModelProvider BuildModelProvider()
+        {
+            var provider = XbimServices.Current.ServiceProvider.GetService<IModelProvider>() ?? throw new InvalidOperationException("No implementation of IModelProvider found");
+
+            // Here we hook into the defined ModelProvider implementation and provide our CobieExpress EntityFactory when a Cobie2x4 is opened
+            provider.EntityFactoryResolver = (version) =>
+            {
+                if (version == Common.Step21.XbimSchemaVersion.Cobie2X4)
+                {
+                    return new EntityFactoryCobieExpress();
+                }
+                return null;
+            };
+
+            return provider;
+        }
+
         private static IModel CreateModel(string file = "")
         {
-            var provider = ModelProviderFactory.CreateProvider();
+            var provider = ModelProvider;
             if (string.IsNullOrEmpty(file))
             {
                 return provider.Create(XbimSchemaVersion.Cobie2X4, XbimStoreType.InMemoryModel);
@@ -92,7 +121,7 @@ namespace Xbim.IO.CobieExpress
         /// <returns></returns>
         public static CobieModel OpenStep21(Stream input, long streamSize, int labelFrom)
         {
-            var model = new MemoryModel(factory, labelFrom);
+            var model = new MemoryModel(factory, default(ILoggerFactory), labelFrom);
             model.LoadStep21(input, streamSize);
             return new CobieModel(model);
         }
@@ -100,7 +129,7 @@ namespace Xbim.IO.CobieExpress
         public static CobieModel OpenStep21(string input, bool esentDB = false)
         {
 
-            var provider = ModelProviderFactory.CreateProvider();
+            var provider = ModelProvider;
             XbimSchemaVersion ifcVersion = GetSchemaVersion(input, provider);
 
             var model = provider.Open(input, ifcVersion);
@@ -110,7 +139,7 @@ namespace Xbim.IO.CobieExpress
 
         public static CobieModel OpenStep21(Stream input, long streamSize, bool esentDB = false)
         {
-            var provider = ModelProviderFactory.CreateProvider();
+            var provider = ModelProvider;
             var modelType = esentDB ? XbimModelType.EsentModel : XbimModelType.MemoryModel;
             // TODO: Should determine the schema. not hardwire
             var model = provider.Open(input, StorageType.Stp, XbimSchemaVersion.Ifc4, modelType);
@@ -128,7 +157,7 @@ namespace Xbim.IO.CobieExpress
 
         public static CobieModel OpenEsent(string esentDB)
         {
-            var provider = ModelProviderFactory.CreateProvider();
+            var provider = ModelProvider;
 
             var model = provider.Open(esentDB, XbimSchemaVersion.Cobie2X4, accessMode: XbimDBAccess.ReadWrite);
 
@@ -150,7 +179,7 @@ namespace Xbim.IO.CobieExpress
 
         public static CobieModel OpenStep21Zip(string input, bool esentDB = false)
         {
-            var provider = ModelProviderFactory.CreateProvider();
+            var provider = ModelProvider;
 
             var model = provider.Open(input, XbimSchemaVersion.Cobie2X4);
 
@@ -343,7 +372,8 @@ namespace Xbim.IO.CobieExpress
             get { return _model.SchemaVersion; }
         }
 
-        public ILogger Logger { get => _model.Logger; set => _model.Logger = value; }
+        [Obsolete("Best practice is to get your own logger via XbimServices.Current.CreateLogger<T>()")]
+        public ILogger Logger { get; private set; } = XbimServices.Current.CreateLogger<CobieModel>();
 
         public IEntityCache EntityCache => _model.EntityCache;
 

@@ -19,12 +19,9 @@ namespace Xbim.CobieExpress.Exchanger
         public IfcToCoBieExpressExchanger(IModel source, IModel target, ReportProgressDelegate reportProgress = null, OutputFilters filter = null, string configFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types, bool classify = false) 
             : base(source, target)
         {
-            // make sure there are some loggers in the models
-            target.Logger = target.Logger ?? NullLogger.Instance;
-            source.Logger = source.Logger ?? NullLogger.Instance;
 
             ReportProgress.Progress = reportProgress; //set reporter
-            Helper = new COBieExpressHelper(this, ReportProgress, target.Logger, filter, configFile, extId, sysMode);
+            Helper = new COBieExpressHelper(this, ReportProgress, default, filter, configFile, extId, sysMode);
             Helper.Init();
 
             _classify = classify;

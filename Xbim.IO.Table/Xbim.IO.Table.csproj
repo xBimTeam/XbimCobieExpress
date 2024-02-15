@@ -8,8 +8,8 @@
     <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NPOI" Version="2.5.5" />
-    <PackageReference Include="Xbim.Common" Version="5.1.341" />
+    <PackageReference Include="NPOI" Version="2.6.2" />
+    <PackageReference Include="Xbim.Common" Version="6.0.438-develop" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

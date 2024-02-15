@@ -135,7 +135,7 @@ namespace Xbim.IO.Table
             Store(workbook);
             if (!recalculate || template == null)
             {
-                workbook.Write(stream);
+                workbook.Write(stream, false);
                 return stream;
             }
 
@@ -153,7 +153,7 @@ namespace Xbim.IO.Table
             }
 
             //write to output stream
-            workbook.Write(stream);
+            workbook.Write(stream, false);
             return stream;
         }
 
