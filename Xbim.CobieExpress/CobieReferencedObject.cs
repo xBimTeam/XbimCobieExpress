@@ -200,11 +200,16 @@ namespace Xbim.CobieExpress
 	    {
 	        return this == other;
 	    }
-        #endregion
+		#endregion
 
 		#region Custom code (will survive code regeneration)
 		//## Custom code
-		//##
-		#endregion
-	}
+
+		public CobieContact CreatedBy => Created.CreatedBy;
+
+        public DateTimeValue CreatedOn => Created.CreatedOn;
+
+        //##
+        #endregion
+    }
 }
