@@ -205,10 +205,10 @@ namespace Xbim.CobieExpress
         #region Custom code (will survive code regeneration)
         //## Custom code
         [EntityAttribute(0, EntityAttributeState.Derived, EntityAttributeType.Class, EntityAttributeType.None, null, null, 0)]
-        public CobieContact CreatedBy => Created.CreatedBy;
+        public CobieContact CreatedBy => Created?.CreatedBy;
 
         [EntityAttribute(0, EntityAttributeState.Derived, EntityAttributeType.Class, EntityAttributeType.None, null, null, 0)]
-        public DateTimeValue CreatedOn => Created.CreatedOn;
+        public DateTimeValue? CreatedOn => Created?.CreatedOn;
 
         //##
         #endregion
