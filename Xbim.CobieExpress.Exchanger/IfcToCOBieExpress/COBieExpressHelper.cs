@@ -1098,7 +1098,12 @@ namespace Xbim.CobieExpress.Exchanger
                         classificationList = new List<IIfcClassificationReference>();
                         _classifiedObjects.Add(relatedObject, classificationList);
                     }
-                    classificationList.Add((IIfcClassificationReference)ifcRelAssociatesClassification.RelatingClassification);
+                    var classSelect = ifcRelAssociatesClassification.RelatingClassification;
+                    if (classSelect is IIfcClassificationReference classRef)
+                    {
+                        classificationList.Add(classRef);
+                    }
+                    // otherwise it's an IfcClassification system not a Reference - in IFC4 an object (e.g. Project) can be linked to a classification
                     ReportProgress.IncrementAndUpdate();
                 }
             }
