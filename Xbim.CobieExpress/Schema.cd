@@ -1,0 +1,280 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Comment CommentText="CobieTypeOrComponent is Assembly equivalent">
+    <Position X="11" Y="6.5" Height="0.75" Width="1.7" />
+  </Comment>
+  <Class Name="Xbim.CobieExpress.@CobieReferencedObject">
+    <Position X="6" Y="2.25" Width="2" />
+    <Members>
+      <Property Name="@AltExternalId" Hidden="true" />
+      <Field Name="_altExternalId" Hidden="true" />
+      <Field Name="_created" Hidden="true" />
+      <Field Name="_externalId" Hidden="true" />
+      <Field Name="_externalObject" Hidden="true" />
+      <Field Name="_externalSystem" Hidden="true" />
+      <Method Name="CobieReferencedObject" Hidden="true" />
+      <Property Name="CreatedBy" Hidden="true" />
+      <Property Name="CreatedOn" Hidden="true" />
+      <Method Name="Equals" Hidden="true" />
+      <Property Name="ICobieReferencedObject.AltExternalId" Hidden="true" />
+      <Property Name="ICobieReferencedObject.Created" Hidden="true" />
+      <Property Name="ICobieReferencedObject.ExternalId" Hidden="true" />
+      <Property Name="ICobieReferencedObject.ExternalObject" Hidden="true" />
+      <Property Name="ICobieReferencedObject.ExternalSystem" Hidden="true" />
+      <Method Name="Parse" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAChAAYAAKAAAAAAgQAQAgAABAACAgAAQAQAAIAAAAE=</HashCode>
+      <FileName>CobieReferencedObject.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.Common.PersistEntity" Collapsed="true">
+    <Position X="7.75" Y="1.25" Width="1.5" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieAsset">
+    <Position X="6.25" Y="5" Width="1.5" />
+    <Members>
+      <Property Name="@AffectedBy" Hidden="true" />
+      <Property Name="@CausingIssues" Hidden="true" />
+      <Property Name="@Impacts" Hidden="true" />
+      <Property Name="@Representations" Hidden="true" />
+      <Field Name="_attributes" Hidden="true" />
+      <Field Name="_categories" Hidden="true" />
+      <Field Name="_description" Hidden="true" />
+      <Field Name="_documents" Hidden="true" />
+      <Field Name="_impacts" Hidden="true" />
+      <Field Name="_name" Hidden="true" />
+      <Field Name="_representations" Hidden="true" />
+      <Method Name="CobieAsset" Hidden="true" />
+      <Method Name="Equals" Hidden="true" />
+      <Property Name="ICobieAsset.AffectedBy" Hidden="true" />
+      <Property Name="ICobieAsset.Attributes" Hidden="true" />
+      <Property Name="ICobieAsset.Categories" Hidden="true" />
+      <Property Name="ICobieAsset.CausingIssues" Hidden="true" />
+      <Property Name="ICobieAsset.Description" Hidden="true" />
+      <Property Name="ICobieAsset.Documents" Hidden="true" />
+      <Property Name="ICobieAsset.Impacts" Hidden="true" />
+      <Property Name="ICobieAsset.Name" Hidden="true" />
+      <Property Name="ICobieAsset.Representations" Hidden="true" />
+      <Method Name="Parse" Hidden="true" />
+      <Property Name="this" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AMAhJIBACAAAQCAGjACAIAAAAAAAQAAAEAAAiEDCEAA=</HashCode>
+      <FileName>CobieAsset.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieAttribute">
+    <Position X="28.75" Y="6.25" Width="1.5" />
+    <Members>
+      <Property Name="@AllowedValues" Hidden="true" />
+      <Property Name="@Description" Hidden="true" />
+      <Property Name="@Stage" Hidden="true" />
+      <Property Name="@Unit" Hidden="true" />
+      <Field Name="_allowedValues" Hidden="true" />
+      <Field Name="_description" Hidden="true" />
+      <Field Name="_name" Hidden="true" />
+      <Field Name="_stage" Hidden="true" />
+      <Field Name="_unit" Hidden="true" />
+      <Field Name="_value" Hidden="true" />
+      <Method Name="CobieAttribute" Hidden="true" />
+      <Method Name="Equals" Hidden="true" />
+      <Property Name="ICobieAttribute.AllowedValues" Hidden="true" />
+      <Property Name="ICobieAttribute.Description" Hidden="true" />
+      <Property Name="ICobieAttribute.Name" Hidden="true" />
+      <Property Name="ICobieAttribute.RelatedAssets" Hidden="true" />
+      <Property Name="ICobieAttribute.Stage" Hidden="true" />
+      <Property Name="ICobieAttribute.Unit" Hidden="true" />
+      <Property Name="ICobieAttribute.Value" Hidden="true" />
+      <Property Name="IContainsEntityReferences.References" Hidden="true" />
+      <Method Name="Parse" Hidden="true" />
+      <Method Name="Set" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AVggIIAABggKBAAEgAABCAAAECCAAEAAgAAAAIABAAI=</HashCode>
+      <FileName>CustomCode\CobieAttribute.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieConnection" Collapsed="true">
+    <Position X="15.5" Y="6.25" Width="2" />
+    <TypeIdentifier>
+      <HashCode>gMCpYIAACAEAACBEgQIACAABAAAIABAIEAAJgJACIBI=</HashCode>
+      <FileName>CustomCode\CobieAsset..partial.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieContact" Collapsed="true">
+    <Position X="0.5" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EoAhQAGAiQAgBCAIgEAACAQ0AoNCQgBQEAECgCUSGhE=</HashCode>
+      <FileName>CustomCode\CobieAsset..partial.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieCoordinate" Collapsed="true">
+    <Position X="30.75" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>DkAgIBAIAAwABAA8gAAADAEQCgAAgAAAgAAAAgAAIAA=</HashCode>
+      <FileName>CobieCoordinate.cs</FileName>
+      <NewMemberFileName>CustomCode\CobieAsset..partial.cs</NewMemberFileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieDocument" Collapsed="true">
+    <Position X="27" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EMAlIoAgCAgAACAFkAABjxBAgAiAoABAEAAIkAACEEA=</HashCode>
+      <FileName>CustomCode\CobieAsset..partial.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieImpact" Collapsed="true">
+    <Position X="25" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IPghIIQQiAgAACAEsBQACBAAAEUYAgAAECgAgJACHCA=</HashCode>
+      <FileName>CustomCode\CobieAsset..partial.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieIssue" Collapsed="true">
+    <Position X="32.75" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BMjpoIQACAQgACAM0AAACgBAAAAACQCBEEAA1ICCAAA=</HashCode>
+      <FileName>CustomCode\CobieAsset..partial.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieJob">
+    <Position X="23" Y="6.25" Width="1.5" />
+    <Members>
+      <Field Name="_description" Hidden="true" />
+      <Field Name="_duration" Hidden="true" />
+      <Field Name="_durationUnit" Hidden="true" />
+      <Field Name="_frequency" Hidden="true" />
+      <Field Name="_frequencyUnit" Hidden="true" />
+      <Field Name="_jobStatusType" Hidden="true" />
+      <Field Name="_jobType" Hidden="true" />
+      <Field Name="_name" Hidden="true" />
+      <Field Name="_priors" Hidden="true" />
+      <Field Name="_resources" Hidden="true" />
+      <Field Name="_start" Hidden="true" />
+      <Field Name="_startUnit" Hidden="true" />
+      <Field Name="_taskNumber" Hidden="true" />
+      <Field Name="_type" Hidden="true" />
+      <Method Name="CobieJob" Hidden="true" />
+      <Method Name="Equals" Hidden="true" />
+      <Method Name="Parse" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>BuChIIAAOomIwqYEpNEBGAAAAEAAQgKAEAAAgBACQUA=</HashCode>
+      <FileName>CustomCode\CobieAsset..partial.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieResource">
+    <Position X="20.75" Y="6.25" Width="2.25" />
+    <Members>
+      <Field Name="_description" Hidden="true" />
+      <Field Name="_name" Hidden="true" />
+      <Field Name="_resourceType" Hidden="true" />
+      <Method Name="CobieResource" Hidden="true" />
+      <Method Name="Equals" Hidden="true" />
+      <Method Name="Parse" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AMAhKIAACAAAACAEgAAAyAAAAAAAAAAAEAAEgAASAAA=</HashCode>
+      <FileName>CustomCode\CobieAsset..partial.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.CobieSpare">
+    <Position X="18.25" Y="6.25" Width="1.5" />
+    <Members>
+      <Field Name="_description" Hidden="true" />
+      <Field Name="_name" Hidden="true" />
+      <Field Name="_partNumber" Hidden="true" />
+      <Field Name="_setNumber" Hidden="true" />
+      <Field Name="_spareType" Hidden="true" />
+      <Field Name="_suppliers" Hidden="true" />
+      <Field Name="_type" Hidden="true" />
+      <Method Name="CobieSpare" Hidden="true" />
+      <Method Name="Equals" Hidden="true" />
+      <Method Name="Parse" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AMCpoIgADACAACQEgAAASAAAIEQAQAEAEAAAgiAGAAA=</HashCode>
+      <FileName>CustomCode\CobieAsset..partial.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieSpace" Collapsed="true">
+    <Position X="6.5" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAioGAJAABAAAAIAgAAASAAAMAAAACQEACBAAgCABAA=</HashCode>
+      <FileName>CobieSpace.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieFacility" Collapsed="true">
+    <Position X="2" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACgAAAAICABCIEQgCADGAAAIBAEAQICGAAJQQAAIAA=</HashCode>
+      <FileName>CobieFacility.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieFloor" Collapsed="true">
+    <Position X="4.25" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQCgAAEAAACACCAAgAAQCBAAQAAgAAAEAAgAAAAAAAA=</HashCode>
+      <FileName>CobieFloor.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieSystem" Collapsed="true">
+    <Position X="13.75" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACgAABAAAAAIAAAgAAACAQIAAAgAAAEAAAAAAAAAAA=</HashCode>
+      <FileName>CobieSystem.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieTypeOrComponent" Collapsed="true">
+    <Position X="11" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EEQhAAAgAAAAAAAAgAAAEAAQAAgAAAAAAAACAAAAAAA=</HashCode>
+      <FileName>CobieTypeOrComponent.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieZone" Collapsed="true">
+    <Position X="8.75" Y="8.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AACgAAEAAAAAAAAAgAAACACAAAAAAAAAAAABAAAAAAA=</HashCode>
+      <FileName>CobieZone.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieComponent" Collapsed="true">
+    <Position X="12" Y="10" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAGgAEEEAADAAIQCgAAAyACAIsIJAAwAAABABIgABAA=</HashCode>
+      <FileName>CobieComponent.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Xbim.CobieExpress.@CobieType" Collapsed="true">
+    <Position X="10" Y="10" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>WkDnujNoSwCOKIEgoEgUCJ0AGhAEAGIE3EShJDbjBEg=</HashCode>
+      <FileName>CobieType.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
