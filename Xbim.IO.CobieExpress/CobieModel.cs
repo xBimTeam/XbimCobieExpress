@@ -82,7 +82,8 @@ namespace Xbim.IO.CobieExpress
 
         private static IModelProvider BuildModelProvider()
         {
-            var provider = XbimServices.Current.ServiceProvider.GetService<IModelProvider>() ?? throw new InvalidOperationException("No implementation of IModelProvider found");
+            
+            var provider = XbimServices.Current.ServiceProvider.GetService<IModelProvider>() ?? new HeuristicModelProvider(XbimServices.Current.GetLoggerFactory());
 
             // Here we hook into the defined ModelProvider implementation and provide our CobieExpress EntityFactory when a Cobie2x4 is opened
             provider.EntityFactoryResolver = (version) =>
