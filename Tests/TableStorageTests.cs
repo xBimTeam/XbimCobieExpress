@@ -115,6 +115,10 @@ namespace Xbim.IO.Tests
             var cobieModel = CobieModel.ImportFromTable(@"2016-02-29-Dormitory-COBie.xlsx", out report);
             Assert.IsTrue(string.IsNullOrWhiteSpace(report), "Errors loading cobie xlsx file" );
 
+            foreach(var row in cobieModel.Instances.OfType<CobieReferencedObject>())
+            {
+                Assert.AreNotEqual(0, row.RowNumber,$"{row}");
+            }
         }
 
         [TestMethod]

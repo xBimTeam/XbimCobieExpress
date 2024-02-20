@@ -65,10 +65,10 @@ namespace Xbim.IO.Table
             _globalEntities.Clear();
 
             //create spreadsheet representaion 
-            LoadFromWoorkbook(workbook);
+            LoadFromWorkbook(workbook);
         }
 
-        private void LoadFromWoorkbook(IWorkbook workbook)
+        private void LoadFromWorkbook(IWorkbook workbook)
         {
             //get all data tables
             if (Mapping.ClassMappings == null || !Mapping.ClassMappings.Any())
@@ -215,6 +215,7 @@ namespace Xbim.IO.Table
 
                 //last row might be used in case this is a MultiRow
                 lastEntity = LoadFromRow(row, context, lastRow, lastEntity);
+                AddRowNumber(lastEntity, context, row.RowNum + 1);
                 lastRow = row;
             }
         }
@@ -290,7 +291,21 @@ namespace Xbim.IO.Table
 
 
             //get type of the coresponding object from ClassMapping or from a type hint, create instance
-            return ResolveContext(context, -1, false);
+            var entity = ResolveContext(context, -1, false);
+            return entity;
+        }
+
+        private void AddRowNumber(IPersistEntity entity, ReferenceContext context, int rowNum)
+        {
+            if (string.IsNullOrEmpty(Mapping.RowNumber))
+                return;
+
+            // TODO: Consider caching the delegate to avoid reflection lookup.
+            var field = context.SegmentType.Derives.FirstOrDefault(d => d.Name == Mapping.RowNumber);
+            if (field == null)
+                return;
+
+            field.PropertyInfo.SetValue(entity, rowNum);  // 
         }
 
         /// <summary>

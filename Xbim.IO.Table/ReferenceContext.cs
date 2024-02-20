@@ -9,7 +9,7 @@ using Xbim.Common.Metadata;
 
 namespace Xbim.IO.Table
 {
-    [DebuggerDisplay("{Segment}")]
+    [DebuggerDisplay("Ref: {ContextType} [{SegmentType}]: {Mapping}")]
     public class ReferenceContext
     {
         private readonly List<ReferenceContext> _scalarChildren = new List<ReferenceContext>();
