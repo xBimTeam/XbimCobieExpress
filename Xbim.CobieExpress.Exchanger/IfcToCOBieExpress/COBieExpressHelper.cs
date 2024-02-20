@@ -191,7 +191,7 @@ namespace Xbim.CobieExpress.Exchanger
                 {
                     _xbimContact = Target.Instances.New<CobieContact>(c =>
                     {
-                        c.Email = "unknown@OpenBIM.org";
+                        c.Email = "toolkit@xbim.net";
                         c.GivenName = "XbimTeam";
                         c.Category = UnknownRole;
                         c.Created = GetCreatedInfo(c, _now);
