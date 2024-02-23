@@ -304,7 +304,9 @@ namespace Xbim.IO.Table
             //if there is any enumeration on the path this needs to be treated as a list of values
             if (HasEnumerationOnPath)
             {
-                if (cell == null || cell.CellType != CellType.String || string.Equals(cell.StringCellValue, Mapping.DefaultValue, StringComparison.OrdinalIgnoreCase))
+                if (cell == null ||
+                    (cell.CellType != CellType.String && cell.CellType != CellType.Formula) || 
+                    string.Equals(cell.StringCellValue, Mapping.DefaultValue, StringComparison.OrdinalIgnoreCase))
                     return;
 
                 var strValue = cell.StringCellValue;

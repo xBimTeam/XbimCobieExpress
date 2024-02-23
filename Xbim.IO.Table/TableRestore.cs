@@ -939,6 +939,7 @@ namespace Xbim.IO.Table
                     case CellType.Numeric:
                         value = cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
                         break;
+                    case CellType.Formula:
                     case CellType.String:
                         value = cell.StringCellValue;
                         break;
@@ -962,8 +963,11 @@ namespace Xbim.IO.Table
                         break;
                     case CellType.String:
                         if (!DateTime.TryParse(cell.StringCellValue, null, DateTimeStyles.RoundtripKind, out date))
+                        {
+                            Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}. Unable to parse '{4}'", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName, cell.StringCellValue);
                             //set to default value according to specification
                             date = DateTime.Parse("1900-12-31T23:59:59", null, DateTimeStyles.RoundtripKind);
+                        }
                         break;
                     default:
                         Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
@@ -976,6 +980,7 @@ namespace Xbim.IO.Table
             {
                 switch (cell.CellType)
                 {
+                    case CellType.Formula:
                     case CellType.Numeric:
                         return isExpress
                             ? Activator.CreateInstance(propType, cell.NumericCellValue)
@@ -983,9 +988,16 @@ namespace Xbim.IO.Table
                     case CellType.String:
                         double d;
                         if (double.TryParse(cell.StringCellValue, out d))
+                        {
                             return isExpress
-                            ? Activator.CreateInstance(propType, d)
-                            : d;
+                                ? Activator.CreateInstance(propType, d)
+                                : d;
+                        }
+                        else
+                        {
+                            Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}. Unable to parse '{4}'", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName, cell.StringCellValue);
+                        }
+                            
                         break;
                     default:
                         Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
