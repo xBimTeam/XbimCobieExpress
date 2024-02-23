@@ -34,8 +34,7 @@ namespace Xbim.IO.Table
 
         private IPersistEntity Entity { get; set; }
 
-        private static readonly List<IPersistEntity> LastParents = new List<IPersistEntity>(); 
-
+        public List<IPersistEntity> LastParents { get => Store._forwardReferenceParentCache; }
 
         public ForwardReference(XbimInstanceHandle handle, ReferenceContext context, TableStore store)
         {

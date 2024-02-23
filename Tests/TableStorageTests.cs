@@ -262,6 +262,27 @@ namespace Xbim.IO.Tests
             File.Delete(file);
         }
 
+        [TestMethod]
+        [DeploymentItem("TestFiles/Documents.xlsx")]
+        public void CanLoadModelConsecutively()
+        {
+            // a static cache used by FowardReferences was causing cross-model referencing when the same model was run twice
+
+            ModelMapping mapping = GetCobieMapping();
+            var cobieModel = CobieModel.ImportFromTable(@"Documents.xlsx", out var report, mapping);
+            cobieModel.Tag = "Original";
+            cobieModel.Dispose();
+            cobieModel = CobieModel.ImportFromTable(@"Documents.xlsx", out report, mapping);
+            cobieModel.Tag = "New";
+
+            Assert.IsTrue(string.IsNullOrWhiteSpace(report), "Errors loading cobie xlsx file");
+
+            foreach (var entity in cobieModel.Instances)
+            {
+                Assert.AreEqual("New", entity.Model.Tag, $"{entity}");
+            }
+        }
+
         private static ModelMapping GetCobieMapping()
         {
             return CobieModel.GetMapping();

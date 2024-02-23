@@ -52,6 +52,9 @@ namespace Xbim.IO.Table
         //list of forward references to be resolved
         private readonly Queue<ForwardReference> _forwardReferences = new Queue<ForwardReference>();
 
+        // cache used by forwwrdReferences as optimisation Resolving parents across references
+        internal readonly List<IPersistEntity> _forwardReferenceParentCache = new List<IPersistEntity>();
+
         //cached check if the mapping contains any potentially multi-value columns
         private Dictionary<ClassMapping, bool> _isMultiRowMappingCache;
 

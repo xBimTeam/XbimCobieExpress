@@ -62,6 +62,7 @@ namespace Xbim.IO.Table
             _isMultiRowMappingCache = new Dictionary<ClassMapping, bool>();
             _referenceContexts = new Dictionary<ClassMapping, ReferenceContext>();
             _forwardReferences.Clear();
+            _forwardReferenceParentCache.Clear();
             _globalEntities.Clear();
 
             //create spreadsheet representaion 

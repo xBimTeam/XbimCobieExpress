@@ -111,7 +111,7 @@ namespace Xbim.IO.CobieExpress
             }
         }
 
-        public object Tag { get; set; }
+        public object Tag { get => _model?.Tag; set => _model.Tag = value; }
 
         /// <summary>
         /// This factory only opens an in memory model
