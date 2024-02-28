@@ -274,7 +274,7 @@ namespace Xbim.IO.CobieExpress
             report = storage.Log.ToString();
             return loaded;
         }
-
+      
         private static TableStore GetTableStore(IModel model, ModelMapping mapping)
         {
             var storage = new TableStore(model, mapping);
