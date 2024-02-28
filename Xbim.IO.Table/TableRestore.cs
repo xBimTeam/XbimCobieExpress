@@ -1,13 +1,14 @@
-﻿using System;
+﻿using NPOI.HSSF.UserModel;
+using NPOI.OpenXml4Net.OPC;
+using NPOI.SS.UserModel;
+using NPOI.SS.Util;
+using NPOI.XSSF.UserModel;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.XSSF.UserModel;
 using Xbim.Common;
 using Xbim.Common.Metadata;
 
@@ -32,13 +33,8 @@ namespace Xbim.IO.Table
                 path += ".xlsx";
                 ext = "xlsx";
             }
-            using (var file = File.OpenRead(path))
-            {
-                var type = ext == "xlsx" ? ExcelTypeEnum.XLSX : ExcelTypeEnum.XLS;
-                LoadFrom(file, type);
-                file.Close();
-            }
-
+            var type = ext == "xlsx" ? ExcelTypeEnum.XLSX : ExcelTypeEnum.XLS;
+            LoadFrom(path, type);
 
         }
 
@@ -68,7 +64,51 @@ namespace Xbim.IO.Table
             //create spreadsheet representaion 
             LoadFromWorkbook(workbook);
         }
+        public void LoadFrom(string filePath, ExcelTypeEnum type)
+        {
 
+            IWorkbook workbook;
+
+            switch (type)
+            {
+                case ExcelTypeEnum.XLS:
+                    using (var file = File.OpenRead(filePath))
+                    {
+                        workbook = new HSSFWorkbook(file);
+                        //refresh cache. This might change in between two loadings
+                        _multiRowIndicesCache = new Dictionary<string, int[]>();
+                        _isMultiRowMappingCache = new Dictionary<ClassMapping, bool>();
+                        _referenceContexts = new Dictionary<ClassMapping, ReferenceContext>();
+                        _forwardReferences.Clear();
+                        _forwardReferenceParentCache.Clear();
+                        _globalEntities.Clear();
+
+                        //create spreadsheet representaion 
+                        LoadFromWorkbook(workbook);
+                    }
+                    break;
+                case ExcelTypeEnum.XLSX: //this is as it should be according to a standard
+                    var pkg = OPCPackage.Open(filePath);
+                    workbook = new XSSFWorkbook(pkg);
+                    //refresh cache. This might change in between two loadings
+                    _multiRowIndicesCache = new Dictionary<string, int[]>();
+                    _isMultiRowMappingCache = new Dictionary<ClassMapping, bool>();
+                    _referenceContexts = new Dictionary<ClassMapping, ReferenceContext>();
+                    _forwardReferences.Clear();
+                    _forwardReferenceParentCache.Clear();
+                    _globalEntities.Clear();
+
+                    //create spreadsheet representaion 
+                    LoadFromWorkbook(workbook);
+                    pkg.Close();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException("type");
+            }
+
+           
+
+        }
         private void LoadFromWorkbook(IWorkbook workbook)
         {
             //get all data tables
