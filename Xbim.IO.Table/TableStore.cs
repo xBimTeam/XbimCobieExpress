@@ -1,4 +1,7 @@
-﻿using System;
+﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,14 +9,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.XSSF.UserModel;
 using Xbim.Common;
 using Xbim.Common.Exceptions;
 using Xbim.Common.Metadata;
 using Xbim.IO.Table.Resolvers;
+using IndexedColors = NPOI.SS.UserModel.IndexedColors;
+
 
 namespace Xbim.IO.Table
 {
@@ -22,7 +23,7 @@ namespace Xbim.IO.Table
         public IModel Model { get; private set; }
         public ModelMapping Mapping { get; private set; }
         public ExpressMetaData MetaData { get { return Model.Metadata; } }
-        public List<ITypeResolver> Resolvers { get; private set; } 
+        public List<ITypeResolver> Resolvers { get; private set; }
 
         #region Writing data out to a spreadsheet
         /// <summary>
@@ -31,16 +32,17 @@ namespace Xbim.IO.Table
         private const int CellTextLimit = 1024;
 
         //dictionary of all styles for different data statuses
-        private Dictionary<DataStatus, ICellStyle> _styles;
+        private Dictionary<DataStatus, uint> _styles;
+        private SharedStringTable _sharedStringTable;
 
         //cache of latest row number in different sheets
-        private Dictionary<string, int> _rowNumCache = new Dictionary<string, int>();
+        private Dictionary<string, uint> _rowNumCache = new Dictionary<string, uint>();
 
         //cache of class mappings and respective express types
-        private readonly Dictionary<ExpressType, ClassMapping> _typeClassMappingsCache = new Dictionary<ExpressType, ClassMapping>(); 
+        private readonly Dictionary<ExpressType, ClassMapping> _typeClassMappingsCache = new Dictionary<ExpressType, ClassMapping>();
 
         //cache of meta properties so it doesn't have to look them up in metadata all the time
-        private readonly  Dictionary<ExpressType, Dictionary<string, ExpressMetaProperty>> _typePropertyCache = new Dictionary<ExpressType, Dictionary<string, ExpressMetaProperty>>();
+        private readonly Dictionary<ExpressType, Dictionary<string, ExpressMetaProperty>> _typePropertyCache = new Dictionary<ExpressType, Dictionary<string, ExpressMetaProperty>>();
 
         // cache of index column indices for every table in use
         private Dictionary<string, int[]> _multiRowIndicesCache;
@@ -65,7 +67,7 @@ namespace Xbim.IO.Table
         //cache of all reference contexts which are only built once (string parsing, search for express properties and types)
         private Dictionary<ClassMapping, ReferenceContext> _referenceContexts;
 
-        public Dictionary<string, Dictionary<int, int>> RowNoToEntityLabelLookup = new Dictionary<string, Dictionary<int, int>>();
+        public Dictionary<string, Dictionary<uint, int>> RowNoToEntityLabelLookup = new Dictionary<string, Dictionary<uint, int>>();
 
         public TableStore(IModel model, ModelMapping mapping)
         {
@@ -111,62 +113,85 @@ namespace Xbim.IO.Table
             using (var file = File.Create(path))
             {
                 var type = ext == "xlsx" ? ExcelTypeEnum.XLSX : ExcelTypeEnum.XLS;
-                Store(file, type, template:template);
+                Store(file, type, template: template);
                 file.Close();
             }
 
-            
+
         }
 
         public Stream Store(Stream stream, ExcelTypeEnum type, Stream template = null, bool recalculate = false)
         {
             Log = new StringWriter();
-            IWorkbook workbook;
-            switch (type)
+            SpreadsheetDocument spreadsheetDocument;
+            if (template != null)
             {
-                case ExcelTypeEnum.XLS:
-                    workbook = template != null ? new HSSFWorkbook(template) : new HSSFWorkbook();
-                    break;
-                case ExcelTypeEnum.XLSX: //this is as it should be according to a standard
-                    workbook = template != null ? new XSSFWorkbook(template) : new XSSFWorkbook();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException("type");
+                spreadsheetDocument = SpreadsheetDocument.Open(template, true);
+            }
+            else
+            {
+                spreadsheetDocument = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook);
+                WorkbookPart wbPart = spreadsheetDocument.AddWorkbookPart();
+                wbPart.Workbook = new Workbook();
             }
 
+            var workbookPart = spreadsheetDocument.WorkbookPart;
+
+            //Add a WorkbookStylesPart to the WorkbookPart
+            WorkbookStylesPart stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+            stylesPart.Stylesheet = new Stylesheet();
+            CellFormats cellFormats = new CellFormats();
+            Fonts fonts = new Fonts();
+            Borders borders = new Borders();
+            Fills fills = new Fills();
+            stylesPart.Stylesheet.CellFormats = cellFormats;
+            stylesPart.Stylesheet.Fonts = fonts;
+            stylesPart.Stylesheet.Borders = borders;
+            stylesPart.Stylesheet.Fills = fills;
+            stylesPart.Stylesheet.CellStyleFormats = new CellStyleFormats();
+            stylesPart.Stylesheet.CellFormats.AppendChild(new CellFormat());
+            stylesPart.Stylesheet.CellStyleFormats.AppendChild(new CellFormat());
+
             //create spreadsheet representaion 
-            Store(workbook);
+            Store(workbookPart);
+
+            if (template != null)
+            {
+                var newSpreadsheetDocument = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook);
+                // Add a WorkbookPart to the document
+                WorkbookPart newworkbookPart = newSpreadsheetDocument.AddWorkbookPart();
+                newworkbookPart.Workbook = new Workbook();
+
+                // Copy the content of the template document to the output document
+                WorkbookPart templateWorkbookPart = spreadsheetDocument.WorkbookPart;
+
+                foreach (var part in templateWorkbookPart.Parts)
+                {
+                    newworkbookPart.AddPart(part.OpenXmlPart, part.RelationshipId);
+                }
+                workbookPart = newworkbookPart;
+            }
             if (!recalculate || template == null)
             {
-                workbook.Write(stream, false);
+                spreadsheetDocument.Save();
+                spreadsheetDocument.Dispose();
                 return stream;
             }
 
-            //refresh formulas
-            switch (type)
-            {
-                case ExcelTypeEnum.XLS:
-                    HSSFFormulaEvaluator.EvaluateAllFormulaCells(workbook);
-                    break;
-                case ExcelTypeEnum.XLSX:
-                    XSSFFormulaEvaluator.EvaluateAllFormulaCells(workbook);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException("type");
-            }
 
             //write to output stream
-            workbook.Write(stream, false);
+            spreadsheetDocument.Save();
+            spreadsheetDocument.Dispose();
             return stream;
         }
 
-        public void Store(IWorkbook workbook)
+        public void Store(WorkbookPart workbook)
         {
             //if there are no mappings do nothing
             if (Mapping.ClassMappings == null || !Mapping.ClassMappings.Any()) return;
 
-            _rowNumCache = new Dictionary<string, int>();
-            _styles = new Dictionary<DataStatus, ICellStyle>();
+            _rowNumCache = new Dictionary<string, uint>();
+            _styles = new Dictionary<DataStatus, uint>();
 
             //creates tables in defined order if they are not there yet
             SetUpTables(workbook, Mapping);
@@ -175,9 +200,9 @@ namespace Xbim.IO.Table
             var rootClasses = Mapping.ClassMappings.Where(m => m.IsRoot);
             foreach (var classMapping in rootClasses)
             {
-                if (classMapping.PropertyMappings == null) 
+                if (classMapping.PropertyMappings == null)
                     continue;
-                
+
                 var eType = classMapping.Type;
                 if (eType == null)
                 {
@@ -190,23 +215,23 @@ namespace Xbim.IO.Table
             }
         }
 
-        private void Store(IWorkbook workbook, ClassMapping mapping, ExpressType expType, IPersistEntity parent)
+        private void Store(WorkbookPart workbook, ClassMapping mapping, ExpressType expType, IPersistEntity parent)
         {
             if (mapping.PropertyMappings == null)
                 return;
 
             var context = parent == null ?
-                new EntityContext(Model.Instances.OfType(expType.Name.ToUpper(), false).ToList()){ LeavesDepth = 1 } :
+                new EntityContext(Model.Instances.OfType(expType.Name.ToUpper(), false).ToList()) { LeavesDepth = 1 } :
                 mapping.GetContext(parent);
 
-            if(!context.Leaves.Any()) return;
+            if (!context.Leaves.Any()) return;
 
             var tableName = mapping.TableName ?? "Default";
-            var sheet = workbook.GetSheet(tableName) ?? workbook.CreateSheet(tableName);
-
+            Sheet sheet = workbook.Workbook.Sheets.FirstOrDefault(x => (x as Sheet).Name == tableName) as Sheet;
+            var workSheetPart = (WorksheetPart)workbook.GetPartById(sheet.Id);
             foreach (var leaveContext in context.Leaves)
             {
-                Store(sheet, leaveContext.Entity, mapping, expType, leaveContext);
+                Store(workSheetPart, leaveContext.Entity, mapping, expType, leaveContext, tableName);
 
                 foreach (var childrenMapping in mapping.ChildrenMappings)
                 {
@@ -215,21 +240,21 @@ namespace Xbim.IO.Table
             }
         }
 
-        private void Store(ISheet sheet, IPersistEntity entity, ClassMapping mapping, ExpressType expType, EntityContext context)
+        private void Store(WorksheetPart sheet, IPersistEntity entity, ClassMapping mapping, ExpressType expType, EntityContext context, string sheetName)
         {
-            var multiRow = -1;
+            Row multiRow = new Row() { RowIndex = 0 };
             List<string> multiValues = null;
             PropertyMapping multiMapping = null;
-            var row = GetRow(sheet);
+            var row = GetRow(sheet, sheetName);
 
             //fix on "Special Case" Assembly Row to Entity mapping
-            if ((context?.RootEntity != null) && (expType?.ExpressNameUpper == "TYPEORCOMPONENT") ) //without CobieExpress reference and not using reflection this is as good as it gets to ID Assembly
+            if ((context?.RootEntity != null) && (expType?.ExpressNameUpper == "TYPEORCOMPONENT")) //without CobieExpress reference and not using reflection this is as good as it gets to ID Assembly
             {
-                RowNoToEntityLabelLookup[sheet.SheetName].Add(row.RowNum, context.RootEntity.EntityLabel);
+                RowNoToEntityLabelLookup[sheetName].Add(row.RowIndex, context.RootEntity.EntityLabel);
             }
             else
             {
-                RowNoToEntityLabelLookup[sheet.SheetName].Add(row.RowNum, entity.EntityLabel);
+                RowNoToEntityLabelLookup[sheetName].Add(row.RowIndex, entity.EntityLabel);
             }
 
             foreach (var propertyMapping in mapping.PropertyMappings)
@@ -246,7 +271,7 @@ namespace Xbim.IO.Table
                 var isMultiRow = IsMultiRow(value, propertyMapping);
                 if (isMultiRow)
                 {
-                    multiRow = row.RowNum;
+                    multiRow = row;
                     var values = new List<string>();
                     var enumerable = value as IEnumerable<string>;
                     if (enumerable != null)
@@ -254,7 +279,7 @@ namespace Xbim.IO.Table
 
                     //get only first value and store it
                     var first = values.First();
-                    Store(row, first, propertyMapping);
+                    Store(row, first, propertyMapping, sheet);
 
                     //set the rest for the processing as multiValue
                     values.Remove(first);
@@ -263,40 +288,65 @@ namespace Xbim.IO.Table
                 }
                 else
                 {
-                    Store(row, value, propertyMapping);
+                    Store(row, value, propertyMapping, sheet);
                 }
 
             }
 
             //adjust width of the columns after the first and the eight row 
             //adjusting fully populated workbook takes ages. This should be almost all right
-            if (row.RowNum == 1 || row.RowNum == 8)
-                AdjustAllColumns(sheet, mapping);
+            if (row.RowIndex == 1 || row.RowIndex == 8)
+                AdjustAllColumns(sheet, mapping, row);
 
             //it is not a multi row so return
-            if (multiRow <= 0 || multiValues == null || !multiValues.Any()) 
+            if ((multiRow != null && multiRow.RowIndex <= 1) || multiValues == null || !multiValues.Any())
                 return;
 
             //add repeated rows if necessary
             foreach (var value in multiValues)
             {
-                var rowNum = GetNextRowNum(sheet);
-                var copy = sheet.CopyRow(multiRow, rowNum);
-                Store(copy, value, multiMapping);
-                RowNoToEntityLabelLookup[sheet.SheetName].Add(rowNum, entity.EntityLabel);
+                var rowNum = GetNextRowNum(sheetName);
+                var copy = CopyRow(multiRow, rowNum);
+                if (copy != null)
+                {
+                    SheetData sheetData = sheet.Worksheet.Elements<SheetData>().First();
+                    sheetData.Append(copy);
+                }
+                Store(copy, value, multiMapping, sheet);
+                RowNoToEntityLabelLookup[sheetName].Add(rowNum, entity.EntityLabel);
             }
         }
 
+        private Row CopyRow(Row sourceRow, uint destinationIndex)
+        {
+            if (sourceRow != null)
+            {
+                // Clone the source row
+                Row destinationRow = (Row)sourceRow.CloneNode(true);
+
+                // Set the row index of the destination row
+                destinationRow.RowIndex = destinationIndex;
+
+                // Update the cell references in the cloned row
+                foreach (Cell cell in destinationRow.Elements<Cell>())
+                {
+                    string cellReference = cell.CellReference;
+                    cell.CellReference = new StringValue(cellReference.Substring(0, 1) + destinationIndex);
+                }
+                return destinationRow;
+            }
+            return null;
+        }
 
         private bool IsMultiRow(object value, PropertyMapping mapping)
         {
             if (value == null)
                 return false;
-            if (mapping.MultiRow == MultiRow.None) 
+            if (mapping.MultiRow == MultiRow.None)
                 return false;
 
             var values = value as IEnumerable<string>;
-            if (values == null) 
+            if (values == null)
                 return false;
 
             var strings = values.ToList();
@@ -308,24 +358,36 @@ namespace Xbim.IO.Table
             return single.Length > CellTextLimit && mapping.MultiRow == MultiRow.IfNecessary;
         }
 
-        private void Store(IRow row, object value, PropertyMapping mapping)
+        private void Store(Row row, object value, PropertyMapping mapping, WorksheetPart worksheetPart)
         {
             if (value == null)
                 return;
 
-            var cellIndex = CellReference.ConvertColStringToIndex(mapping.Column);
-            var cell = row.GetCell(cellIndex) ?? row.CreateCell(cellIndex);
-
+            Cell cell = row.Elements<Cell>()?.FirstOrDefault(x => x.CellReference == mapping.Column + row.RowIndex.Value);
+            if (cell is null)
+            {
+                cell = new Cell() { CellReference = mapping.Column + row.RowIndex.Value };
+                row.Append(cell);
+            }
             //set column style to cell
-            cell.CellStyle = row.Sheet.GetColumnStyle(cellIndex);
+
+            Columns columns = worksheetPart.Worksheet.GetFirstChild<Columns>();
+            Column column = columns.Elements<Column>().FirstOrDefault(c =>
+            c.Min == GetColumnIndexFromString(mapping.Column) &&
+            c.Max == GetColumnIndexFromString(mapping.Column)
+            );
+
+            cell.StyleIndex = column.Style;
 
             //simplify any eventual enumeration into a single string
             var enumVal = value as IEnumerable;
             if (enumVal != null && !(value is string))
             {
                 var strValue = string.Join(Mapping.ListSeparator, enumVal.Cast<object>());
-                cell.SetCellType(CellType.String);
-                cell.SetCellValue(strValue);
+                if (string.IsNullOrEmpty(strValue))
+                    return;
+                cell.DataType = CellValues.String;
+                cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(strValue);
                 return;
             }
 
@@ -333,8 +395,8 @@ namespace Xbim.IO.Table
             var str = value as string;
             if (str != null)
             {
-                cell.SetCellType(CellType.String);
-                cell.SetCellValue(str);
+                cell.DataType = CellValues.String;
+                cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(str);
                 return;
             }
 
@@ -342,16 +404,16 @@ namespace Xbim.IO.Table
             if (value is double || value is float || value is int || value is long || value is short || value is byte || value is uint || value is ulong ||
                 value is ushort)
             {
-                cell.SetCellType(CellType.Numeric);
-                cell.SetCellValue(Convert.ToDouble(value));
+                cell.DataType = CellValues.Number;
+                cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(Convert.ToDouble(value));
                 return;
             }
 
             //boolean value
             if (value is bool)
             {
-                cell.SetCellType(CellType.Boolean);
-                cell.SetCellValue((bool)value);
+                cell.DataType = CellValues.Boolean;
+                cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue((bool)value);
                 return;
             }
 
@@ -360,10 +422,10 @@ namespace Xbim.IO.Table
             {
                 var eType = value.GetType();
                 var eValue = Enum.GetName(eType, value);
-                    cell.SetCellType(CellType.String);
-                //try to get alias from configuration
                 var alias = GetEnumAlias(eType, eValue);
-                cell.SetCellValue(alias ?? eValue);
+
+                cell.DataType = CellValues.String;
+                cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(alias ?? eValue);
                 return;
             }
 
@@ -398,7 +460,7 @@ namespace Xbim.IO.Table
             return mapping;
         }
 
-        private readonly Dictionary<string, ExpressType> _tableTypeCache = new Dictionary<string, ExpressType>(); 
+        private readonly Dictionary<string, ExpressType> _tableTypeCache = new Dictionary<string, ExpressType>();
 
         internal ExpressType GetType(string tableName)
         {
@@ -555,7 +617,7 @@ namespace Xbim.IO.Table
             if (ofType == null || value == null) return value;
 
             var vType = value.GetType();
-            if (!typeof (IEnumerable).IsAssignableFrom(vType)) 
+            if (!typeof(IEnumerable).IsAssignableFrom(vType))
                 return ofType.IsAssignableFrom(vType) ? value : null;
 
             var ofTypeMethod = vType.GetMethod("OfType");
@@ -668,113 +730,159 @@ namespace Xbim.IO.Table
             return entity.ToString();
         }
 
-        private IRow GetRow(ISheet sheet)
+        private Row GetRow(WorksheetPart sheet, string sheetName)
         {
+            SheetData sheetData = sheet.Worksheet.Elements<SheetData>().First();
             //get the next row in rowNumber is less than 1 or use the argument to get or create new row
-            int lastIndex;
-            if (!_rowNumCache.TryGetValue(sheet.SheetName, out lastIndex))
+            uint lastIndex;
+            if (!_rowNumCache.TryGetValue(sheetName, out lastIndex))
             {
-                lastIndex = -1;
-                _rowNumCache.Add(sheet.SheetName, -1);
+                lastIndex = 0;
+                _rowNumCache.Add(sheetName, 0);
             }
-            var row = lastIndex < 0
+            var row = lastIndex < 1
                 ? GetNextEmptyRow(sheet)
-                : (sheet.GetRow(lastIndex + 1) ?? sheet.CreateRow(lastIndex + 1));
+                : sheetData.Elements<Row>().FirstOrDefault(x => x.RowIndex == lastIndex + 1);
 
-            if (row.RowNum == 0)
-                row = sheet.CreateRow(1);
-
+            if (row is null)
+            {
+                row = new Row() { RowIndex = (uint)lastIndex + 1 };
+                sheetData.Append(row);
+            }
+            if (row.RowIndex == 1)
+            {
+                row = new Row() { RowIndex = 2 };
+                sheetData.Append(new Row() { RowIndex = 2 });
+            }
             //cache the latest row index
-            _rowNumCache[sheet.SheetName] = row.RowNum;
+            _rowNumCache[sheetName] = row.RowIndex;
             return row;
         }
 
-        private int GetNextRowNum(ISheet sheet)
+        private uint GetNextRowNum(string sheetName)
         {
-            int lastIndex;
+            uint lastIndex;
             //no raws were created in this sheet so far
-            if (!_rowNumCache.TryGetValue(sheet.SheetName, out lastIndex))
-                return -1;
+            if (!_rowNumCache.TryGetValue(sheetName, out lastIndex))
+                return 0;
 
             lastIndex++;
-            _rowNumCache[sheet.SheetName] = lastIndex;
+            _rowNumCache[sheetName] = lastIndex;
             return lastIndex;
         }
 
-        private static IRow GetNextEmptyRow(ISheet sheet)
+        private static Row GetNextEmptyRow(WorksheetPart sheet)
         {
-            foreach (IRow row in sheet)
+            SheetData sheetData = sheet.Worksheet.Elements<SheetData>().First();
+            int lastIndex = 0;
+            foreach (Row row in sheetData.Elements<Row>())
             {
+                lastIndex++;
                 var isEmpty = true;
-                foreach (ICell cell in row)
+                foreach (Cell cell in row)
                 {
-                    if (cell.CellType == CellType.Blank) continue;
+                    if (string.IsNullOrEmpty(cell.CellValue.InnerText)) continue;
 
                     isEmpty = false;
                     break;
                 }
                 if (isEmpty) return row;
             }
-            return sheet.CreateRow(sheet.LastRowNum + 1);
+            var newRow = new Row() { RowIndex = (uint)lastIndex + 1 };
+            sheetData.Append(newRow);
+            return newRow;
         }
 
 
 
-        private void SetUpHeader(ISheet sheet, ClassMapping classMapping)
+        private void SetUpHeader(WorksheetPart sheetPart, WorkbookPart workbook, ClassMapping classMapping)
         {
-            var workbook = sheet.Workbook;
-            var row = sheet.GetRow(0) ?? sheet.CreateRow(0);
+            SheetData sheetData = sheetPart.Worksheet.Elements<SheetData>().First();
+            //var workbook = sheetPart.Workbook;
+            var row = sheetData?.Elements<Row>()?.FirstOrDefault();
+            if (row is null)
+            {
+                row = new Row() { RowIndex = 1 };
+                sheetData.Append(row);
+            }
             InitMappingColumns(classMapping);
             CacheColumnIndices(classMapping);
 
             //freeze header row
-            sheet.CreateFreezePane(0, 1);
+            //SheetViews sheetViews = new SheetViews();
+            //SheetView sheetView = new SheetView();
+            //Pane pane = new Pane() { VerticalSplit = 0, HorizontalSplit = 1, TopLeftCell = "A1", ActivePane = PaneValues.BottomLeft, State = PaneStateValues.Frozen };
+
+            //sheetView.Append(pane);
+            //sheetViews.Append(sheetView);
+            //sheetPart.Worksheet.Append(sheetViews);
 
             //create header and column style for every mapped column
             foreach (var mapping in classMapping.PropertyMappings)
             {
-                var cellIndex = CellReference.ConvertColStringToIndex(mapping.Column);
-                var cell = row.GetCell(cellIndex) ?? row.CreateCell(cellIndex);
-                cell.SetCellType(CellType.String);
-                cell.SetCellValue(mapping.Header);
-                cell.CellStyle = GetStyle(DataStatus.Header, workbook);
+                Cell cell = row.Elements<Cell>()?.FirstOrDefault(x => x.CellReference == mapping.Column + row.RowIndex.Value);
+                if (cell is null)
+                {
+                    cell = new Cell() { CellReference = mapping.Column + (int)row.RowIndex.Value, DataType = CellValues.String };
+                    cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(mapping.Header);
+                    cell.StyleIndex = GetStyleIndex(DataStatus.Header, workbook.WorkbookStylesPart.Stylesheet);
+                    // Add the cell to the row
+                    row.Append(cell);
+                }
 
                 //set default column style if not defined but available
-                var style = GetStyle(mapping.Status, workbook);
-                if(mapping.Status == DataStatus.None) continue;
-                var existStyle = sheet.GetColumnStyle(cellIndex);
-                if (
-                    existStyle != null && 
-                    existStyle.FillForegroundColor == style.FillForegroundColor &&
-                    existStyle.BorderTop == style.BorderTop &&
-                    existStyle.TopBorderColor == style.TopBorderColor
-                    ) continue;
+                if (mapping.Status == DataStatus.None) continue;
 
-                //create new style
-                sheet.SetDefaultColumnStyle(cellIndex, style);
-                sheet.SetColumnHidden(cellIndex, false);
-                //set default width
-                sheet.SetColumnWidth(cellIndex, 256*15);
-                //hide if defined
+                Columns columns = sheetPart.Worksheet.GetFirstChild<Columns>();
+
+                if (columns == null)
+                {
+                    columns = new Columns();
+                    sheetPart.Worksheet.InsertAt(columns, 0);
+                }
+
+                Column column = columns.Elements<Column>().FirstOrDefault(c => c.Min == GetColumnIndexFromString(mapping.Column) && c.Max == mapping.ColumnIndex);
+
+                if (column == null)
+                {
+                    column = new Column { Min =(uint)mapping.ColumnIndex, Max = (uint)mapping.ColumnIndex, CustomWidth = true, Width = 15 };
+                    columns.Append(column);
+                }
                 if (mapping.Hidden)
-                    sheet.SetColumnHidden(cellIndex, true);
+                    column.Hidden = true;
+
+                var existStyle = column.Style;
+                if (
+                    existStyle != null
+                    ) continue;
+                column.Style = GetStyleIndex(mapping.Status, workbook.WorkbookStylesPart.Stylesheet);
             }
 
             //set up filter
             var lastPropMap = classMapping.PropertyMappings.OrderBy(p => p.ColumnIndex).LastOrDefault();
-            if(lastPropMap != null)
-                sheet.SetAutoFilter(new CellRangeAddress(0, 1, 0, lastPropMap.ColumnIndex));
+
+            AutoFilter autoFilter = new AutoFilter { Reference = new StringValue($"A1:{lastPropMap.Column}1") };
+
+            // Check if AutoFilter exists, if not, add it
+            if (sheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault() == null)
+            {
+                sheetPart.Worksheet.Append(autoFilter);
+            }
+            else // If AutoFilter exists, update its reference
+            {
+                sheetPart.Worksheet.Elements<AutoFilter>().First().Reference = autoFilter.Reference;
+            }
         }
 
         private static void InitMappingColumns(ClassMapping mapping)
         {
-            if (mapping.PropertyMappings == null || 
+            if (mapping.PropertyMappings == null ||
                 !mapping.PropertyMappings.Any() ||
                 mapping.PropertyMappings.All(m => !string.IsNullOrWhiteSpace(m.Column)))
                 return;
 
             var letter = 'A';
-            var number = (int) letter;
+            var number = (int)letter;
             foreach (var pMapping in mapping.PropertyMappings)
             {
                 pMapping.Column = ((char)number++).ToString();
@@ -782,64 +890,146 @@ namespace Xbim.IO.Table
 
         }
 
-        private ICellStyle GetStyle(DataStatus status, IWorkbook workbook)
+        private uint GetStyleIndex(DataStatus status, Stylesheet stylesheet)
         {
-            if(_styles == null)
-                _styles = new Dictionary<DataStatus, ICellStyle>();
 
-            ICellStyle style;
-            if (_styles.TryGetValue(status, out style))
-                return style;
+            if (_styles == null)
+                _styles = new Dictionary<DataStatus, uint>();
 
-            style = workbook.CreateCellStyle();
+            uint styleIndex;
+            if (_styles.TryGetValue(status, out styleIndex))
+                return styleIndex;
+
             var representation = Mapping.StatusRepresentations.FirstOrDefault(r => r.Status == status);
+
+
             if (representation == null)
             {
-                _styles.Add(status, style);
-                return style;
+                _styles.Add(status, styleIndex);
+                return styleIndex;
             }
 
-            style.FillPattern = FillPattern.SolidForeground;
-            style.FillForegroundColor = GetClosestColour(representation.Colour);
+
+            Fill fill = new Fill(new PatternFill() { PatternType = PatternValues.Solid, ForegroundColor = new ForegroundColor { Indexed = (uint)GetClosestColour(representation.Colour) } });
+
             if (representation.Border)
             {
-                style.BorderBottom = style.BorderTop = style.BorderLeft = style.BorderRight
-                    = BorderStyle.Thin;
-                style.BottomBorderColor = style.TopBorderColor = style.LeftBorderColor = style.RightBorderColor
-                    = IndexedColors.Black.Index;    
+
+                var borders = stylesheet.Elements<Borders>().FirstOrDefault();
+
+                Border border = new Border(
+                    new LeftBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColors.Black.Index } },
+                    new RightBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColors.Black.Index } },
+                    new TopBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColors.Black.Index } },
+                    new BottomBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColors.Black.Index } });
+
+                if (stylesheet.Borders.Count == null)
+                {
+                    stylesheet.Borders.Count = 0;
+                }
+                stylesheet.Borders.Count++;
+                stylesheet.Borders.Append(border);
             }
-            var font = workbook.CreateFont();
+
+            if (stylesheet.Fills.Count == null)
+            {
+                stylesheet.Fills.Count = 0;
+            }
+            stylesheet.Fills.Count++;
+            stylesheet.Fills.Append(fill);
+
+            Font font = new Font();
+
             switch (representation.FontWeight)
             {
                 case FontWeight.Normal:
                     break;
                 case FontWeight.Bold:
-                    font.IsBold = true;
+                    font.Bold = new Bold();
                     break;
                 case FontWeight.Italics:
-                    font.IsItalic = true;
+                    font.Italic = new DocumentFormat.OpenXml.Spreadsheet.Italic();
                     break;
                 case FontWeight.BoldItalics:
-                    font.IsBold = true;
-                    font.IsItalic = true;
+                    font.Bold = new Bold();
+                    font.Italic = new DocumentFormat.OpenXml.Spreadsheet.Italic();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            style.SetFont(font);
-            _styles.Add(status, style);
-            return style;
+            if (stylesheet.Fonts.Count == null)
+            {
+                stylesheet.Fonts.Count = 0;
+            }
+            stylesheet.Fonts.Count++;
+            stylesheet.Fonts.Append(font);
+
+
+
+            stylesheet.CellFormats.AppendChild(new CellFormat()
+            {
+                FormatId = stylesheet.Borders.Count - 1,
+                FontId = stylesheet.Fonts.Count - 1,
+                BorderId = stylesheet.Borders.Count - 1,
+                FillId = stylesheet.Fills.Count - 1,
+                ApplyFill = true,
+                ApplyBorder = true,
+                ApplyFont = true
+            }
+            );
+            if (stylesheet.CellFormats.Count == null)
+            {
+                stylesheet.CellFormats.Count = 1;
+            }
+            stylesheet.CellFormats.Count++;
+
+            styleIndex = (uint)stylesheet.CellFormats.Count - 1;
+            _styles.Add(status, styleIndex);
+
+            return styleIndex;
         }
 
         //This operation takes very long time if applied at the end when spreadsheet is fully populated
-        private static void AdjustAllColumns(ISheet sheet, ClassMapping mapping)
+        private static void AdjustAllColumns(WorksheetPart sheet, ClassMapping mapping, Row row)
         {
-            foreach (var colIndex in mapping.PropertyMappings
-                .Select(propertyMapping => CellReference.ConvertColStringToIndex(propertyMapping.Column)))
-                sheet.AutoSizeColumn(colIndex);
-        }
+            var columns = sheet.Worksheet.GetFirstChild<Columns>();
+            var cells = row.Elements<Cell>();
+            foreach (var col in mapping.PropertyMappings)
+            {
+                var cellWidth = GetCellWidth(cells.FirstOrDefault(x => x.CellReference == col.Column + row.RowIndex.Value));
+                columns.Elements<Column>().FirstOrDefault(x => x.Min == col.ColumnIndex && x.Max == col.ColumnIndex).Width = cellWidth < 15 ? 15 : cellWidth;
 
-        private void SetUpTables(IWorkbook workbook, ModelMapping mapping)
+            }
+        }
+        static double GetCellWidth(Cell cell)
+        {
+            double cellWidth = 0;
+
+            if (cell != null && cell.DataType != null && cell.DataType == CellValues.InlineString)
+            {
+                // Calculate width based on length of inline string
+                if (cell.InlineString != null && cell.InlineString.HasChildren)
+                {
+                    foreach (OpenXmlElement element in cell.InlineString.ChildElements)
+                    {
+                        if (element is Text)
+                        {
+
+                            string text = ((Text)element).Text;
+                            cellWidth += text.Length * 1.4; // Adjust this value based on your font and size
+                        }
+                    }
+                }
+            }
+            else if (cell != null && cell.CellValue != null)
+            {
+                // Calculate width based on length of cell value
+                string text = cell.CellValue.Text;
+                cellWidth = text.Length * 1.4; // Adjust this value based on your font and size
+            }
+            return cellWidth;
+        }
+        private void SetUpTables(WorkbookPart workbook, ModelMapping mapping)
         {
             if (mapping == null || mapping.ClassMappings == null || !mapping.ClassMappings.Any())
                 return;
@@ -851,13 +1041,22 @@ namespace Xbim.IO.Table
             }
 
             var names = Mapping.ClassMappings.OrderBy(m => m.TableOrder).Select(m => m.TableName).Distinct();
+            uint count = 1;
+            Sheets sheets = workbook.Workbook.AppendChild(new Sheets());
+
             foreach (var name in names)
             {
-                var sheet = workbook.GetSheet(name) ?? workbook.CreateSheet(name);
-                RowNoToEntityLabelLookup.Add(sheet.SheetName, new Dictionary<int, int>());
-                var classMapping = Mapping.ClassMappings.First(m => m.TableName == name);
-                SetUpHeader(sheet, classMapping);
+                WorksheetPart worksheetPart = workbook.AddNewPart<WorksheetPart>();
+                worksheetPart.Worksheet = new Worksheet(new SheetData());
 
+                // Add a new sheet to the workbook
+                Sheet sheet = new Sheet() { Id = workbook.GetIdOfPart(worksheetPart), SheetId = count, Name = name };
+                sheets.Append(sheet);
+
+                RowNoToEntityLabelLookup.Add(sheet.Name, new Dictionary<uint, int>());
+                var classMapping = Mapping.ClassMappings.First(m => m.TableName == name);
+                SetUpHeader(worksheetPart, workbook, classMapping);
+                count++;
                 ////set colour of the tab: Not implemented exception in NPOI
                 //if (classMapping.TableStatus == DataStatus.None) continue;
                 //var style = GetStyle(classMapping.TableStatus, workbook);
@@ -872,10 +1071,10 @@ namespace Xbim.IO.Table
         {
             if (!IndexedColoursList.Any())
             {
-                var props = typeof (IndexedColors).GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType == typeof (IndexedColors));
+                var props = typeof(IndexedColors).GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType == typeof(IndexedColors));
                 foreach (var info in props)
                 {
-                    IndexedColoursList.Add((IndexedColors) info.GetValue(null));
+                    IndexedColoursList.Add((IndexedColors)info.GetValue(null));
                 }
             }
 
@@ -895,7 +1094,7 @@ namespace Xbim.IO.Table
             var g = Convert.ToByte(hG, 16);
             var b = Convert.ToByte(hB, 16);
 
-            var rgbBytes = new[] {r, g, b};
+            var rgbBytes = new[] { r, g, b };
             var distance = double.NaN;
             var colour = IndexedColors.Automatic;
             foreach (var col in IndexedColoursList)

@@ -1,9 +1,9 @@
-﻿using System;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using NPOI.SS.UserModel;
 using Xbim.Common;
 using Xbim.Common.Metadata;
 
@@ -40,7 +40,7 @@ namespace Xbim.IO.Table
         public object Index { get; private set; }
         public PropertyInfo PropertyInfo { get; private set; }
         public bool IsRoot { get { return ParentContext == null; } }
-        public IRow CurrentRow { get; private set; }
+        public IEnumerable<Cell> CurrentXMLRow { get; private set; }
 
         /// <summary>
         /// Only scalar children. These can be used to find an object or to fill in the data.
@@ -254,9 +254,10 @@ namespace Xbim.IO.Table
 
         }
 
-        public void LoadData(IRow row, bool skipReferences)
+       
+        public void LoadData(IEnumerable<Cell> cells, bool skipReferences)
         {
-            CurrentRow = row;
+            CurrentXMLRow = cells;
 
             //clear any old data
             Values = null;
@@ -268,20 +269,20 @@ namespace Xbim.IO.Table
 
             //load child data
             foreach (var child in Children)
-                child.LoadData(row, skipReferences);
+                child.LoadData(cells, skipReferences);
 
             //load type and table hint values if available
             if (TypeHintMapping != null)
             {
-                var typeCell = row.GetCell(TypeHintMapping.ColumnIndex);
-                if (typeCell != null && typeCell.CellType == CellType.String && !string.IsNullOrWhiteSpace(typeCell.StringCellValue))
-                    TypeTypeHint = Store.MetaData.ExpressType(typeCell.StringCellValue.ToUpper());
+                var typeCell = cells.FirstOrDefault(x => TableStore.GetColumnIndexFromCell(x) == TypeHintMapping.ColumnIndex);
+                if (Store.CheckIfCellHasValue(typeCell, "",out string value))
+                    TypeTypeHint = Store.MetaData.ExpressType(value?.ToUpper()?? typeCell.InnerText.ToUpper());
             }
             if (TableHintMapping != null)
             {
-                var tableCell = row.GetCell(TableHintMapping.ColumnIndex);
-                if (tableCell != null && tableCell.CellType == CellType.String && !string.IsNullOrWhiteSpace(tableCell.StringCellValue))
-                    TableTypeHint = Store.GetType(tableCell.StringCellValue);
+                var tableCell = cells.FirstOrDefault(x => TableStore.GetColumnIndexFromCell(x) == TableHintMapping.ColumnIndex);
+                if (Store.CheckIfCellHasValue(tableCell,"", out string value))
+                    TableTypeHint = Store.GetType(value??tableCell.InnerText);
             }
 
             //return if this is not a leaf
@@ -294,7 +295,7 @@ namespace Xbim.IO.Table
             //if there is no mapping it doesn't make a sense to load any data
             if (Mapping == null) return;
 
-            var cell = row.GetCell(Mapping.ColumnIndex);
+            var cell = cells.FirstOrDefault(x => TableStore.GetColumnIndexFromCell(x) == Mapping.ColumnIndex);
             if (cell == null)
                 return;
             var valType = Store.GetConcreteType(this, cell);
@@ -304,26 +305,19 @@ namespace Xbim.IO.Table
             //if there is any enumeration on the path this needs to be treated as a list of values
             if (HasEnumerationOnPath)
             {
-                if (cell == null ||
-                    (cell.CellType != CellType.String && cell.CellType != CellType.Formula) || 
-                    string.Equals(cell.StringCellValue, Mapping.DefaultValue, StringComparison.OrdinalIgnoreCase))
+                if (!Store.CheckIfCellHasValue(cell, Mapping.DefaultValue,out string value))
                     return;
 
-                var strValue = cell.StringCellValue;
-                if (!string.IsNullOrWhiteSpace(strValue))
+                if (!string.IsNullOrWhiteSpace(value))
                     Values =
-                        strValue.Split(new[] { Store.Mapping.ListSeparator }, StringSplitOptions.RemoveEmptyEntries)
+                        value.Split(new[] { Store.Mapping.ListSeparator }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(v => Store.CreateSimpleValue(valType, v.Trim())).ToArray();
             }
             else
             {
-                if (cell != null && cell.CellType != CellType.Blank &&
-                    (cell.CellType != CellType.String ||
-                     !string.Equals(cell.StringCellValue, Mapping.DefaultValue, StringComparison.OrdinalIgnoreCase)))
+                if (Store.CheckIfCellHasValue(cell,Mapping.DefaultValue, out string value))
                 {
-
-
-                    Values = new[] { Store.CreateSimpleValue(valType, cell) };
+                    Values = new[] { Store.CreateSimpleValue(valType, cell, value) };
                 }
             }
 
@@ -344,7 +338,6 @@ namespace Xbim.IO.Table
                 }
             }
         }
-
 
 
         private void AddMapping(PropertyMapping pMapping, List<string> segments)
