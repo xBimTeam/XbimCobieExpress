@@ -9,7 +9,6 @@
     <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
-		<PackageReference Include="NPOI" Version="2.6.2" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.1" />
     <PackageReference Include="Xbim.Common" Version="6.0.438-develop" />
   </ItemGroup>

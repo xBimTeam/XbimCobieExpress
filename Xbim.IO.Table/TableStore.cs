@@ -13,7 +13,6 @@ using Xbim.Common;
 using Xbim.Common.Exceptions;
 using Xbim.Common.Metadata;
 using Xbim.IO.Table.Resolvers;
-using IndexedColors = NPOI.SS.UserModel.IndexedColors;
 
 
 namespace Xbim.IO.Table
@@ -918,10 +917,10 @@ namespace Xbim.IO.Table
                 var borders = stylesheet.Elements<Borders>().FirstOrDefault();
 
                 Border border = new Border(
-                    new LeftBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColors.Black.Index } },
-                    new RightBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColors.Black.Index } },
-                    new TopBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColors.Black.Index } },
-                    new BottomBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColors.Black.Index } });
+                    new LeftBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColor.Black.Index } },
+                    new RightBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColor.Black.Index } },
+                    new TopBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColor.Black.Index } },
+                    new BottomBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColor.Black.Index } });
 
                 if (stylesheet.Borders.Count == null)
                 {
@@ -1065,21 +1064,21 @@ namespace Xbim.IO.Table
         }
 
         private static readonly Dictionary<string, short> ColourCodeCache = new Dictionary<string, short>();
-        private static readonly List<IndexedColors> IndexedColoursList = new List<IndexedColors>();
+        private static readonly List<IndexedColor> IndexedColoursList = new List<IndexedColor>();
 
         private static short GetClosestColour(string rgb)
         {
             if (!IndexedColoursList.Any())
             {
-                var props = typeof(IndexedColors).GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType == typeof(IndexedColors));
+                var props = typeof(IndexedColor).GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType == typeof(IndexedColor));
                 foreach (var info in props)
                 {
-                    IndexedColoursList.Add((IndexedColors)info.GetValue(null));
+                    IndexedColoursList.Add((IndexedColor)info.GetValue(null));
                 }
             }
 
             if (string.IsNullOrWhiteSpace(rgb))
-                return IndexedColors.Automatic.Index;
+                return IndexedColor.Automatic.Index;
             rgb = rgb.Trim('#').Trim();
             short result;
             if (ColourCodeCache.TryGetValue(rgb, out result))
@@ -1096,7 +1095,7 @@ namespace Xbim.IO.Table
 
             var rgbBytes = new[] { r, g, b };
             var distance = double.NaN;
-            var colour = IndexedColors.Automatic;
+            var colour = IndexedColor.Automatic;
             foreach (var col in IndexedColoursList)
             {
                 var dist = ColourDistance(rgbBytes, col.RGB);
