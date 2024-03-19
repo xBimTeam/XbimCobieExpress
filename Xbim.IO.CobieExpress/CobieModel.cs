@@ -246,7 +246,7 @@ namespace Xbim.IO.CobieExpress
             using (var txn = loaded.BeginTransaction("Loading XLSX"))
             {
                 storage.LoadFrom(file);
-
+                storage.ResolveReferences();
                 //assign all levels to facility because COBie XLS standard contains this implicitly
                 var facility = loaded.Instances.FirstOrDefault<CobieFacility>();
                 var floors = loaded.Instances.OfType<CobieFloor>().ToList();
@@ -260,21 +260,6 @@ namespace Xbim.IO.CobieExpress
             return loaded;
         }
 
-        public static CobieModel ImportFromTable(Stream file, ExcelTypeEnum typeEnum, out string report, ModelMapping mapping = null)
-        {
-            var loaded = new CobieModel();
-            mapping = mapping ?? GetMapping();
-            var storage = GetTableStore(loaded, mapping);
-            using (var txn = loaded.BeginTransaction("Loading XLSX"))
-            {
-                storage.LoadFrom(file, typeEnum);
-                txn.Commit();
-            }
-
-            report = storage.Log.ToString();
-            return loaded;
-        }
-      
         private static TableStore GetTableStore(IModel model, ModelMapping mapping)
         {
             var storage = new TableStore(model, mapping);
