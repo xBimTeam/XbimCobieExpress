@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Xml.Serialization;
 
 namespace Xbim.IO.Table
 {
+    [DebuggerDisplay("[{ColumnIndex}] {Status} {DataType}: {Header} {Column}")]
     public class PropertyMapping
     {
         /// <summary>

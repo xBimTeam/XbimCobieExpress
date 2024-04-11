@@ -1,13 +1,12 @@
-﻿using System;
+﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using NPOI.HSSF.UserModel;
-using NPOI.SS.UserModel;
-using NPOI.SS.Util;
-using NPOI.XSSF.UserModel;
 using Xbim.Common;
 using Xbim.Common.Metadata;
 
@@ -32,70 +31,87 @@ namespace Xbim.IO.Table
                 path += ".xlsx";
                 ext = "xlsx";
             }
-            using (var file = File.OpenRead(path))
-            {
-                var type = ext == "xlsx" ? ExcelTypeEnum.XLSX : ExcelTypeEnum.XLS;
-                LoadFrom(file, type);
-                file.Close();
-            }
-
+            var type = ext == "xlsx" ? ExcelTypeEnum.XLSX : ExcelTypeEnum.XLS;
+            LoadFrom(path, type);
 
         }
 
-        public void LoadFrom(Stream stream, ExcelTypeEnum type)
+        public void LoadFrom(string filePath, ExcelTypeEnum type)
         {
-            IWorkbook workbook;
+
+            WorkbookPart workbook;
+
             switch (type)
             {
                 case ExcelTypeEnum.XLS:
-                    workbook = new HSSFWorkbook(stream);
+
+                    using (SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.Open(filePath, false))
+                    {
+                        workbook = spreadsheetDocument.WorkbookPart;
+                        _multiRowIndicesCache = new Dictionary<string, int[]>();
+                        _isMultiRowMappingCache = new Dictionary<ClassMapping, bool>();
+                        _referenceContexts = new Dictionary<ClassMapping, ReferenceContext>();
+                        _forwardReferences.Clear();
+                        _forwardReferenceParentCache.Clear();
+                        _globalEntities.Clear();
+                        LoadFromWorkbook(workbook);
+                    }
                     break;
                 case ExcelTypeEnum.XLSX: //this is as it should be according to a standard
-                    workbook = new XSSFWorkbook(stream);
+                    using (SpreadsheetDocument spreadsheetDocument = SpreadsheetDocument.Open(filePath, false))
+                    {
+                        workbook = spreadsheetDocument.WorkbookPart;
+                        _multiRowIndicesCache = new Dictionary<string, int[]>();
+                        _isMultiRowMappingCache = new Dictionary<ClassMapping, bool>();
+                        _referenceContexts = new Dictionary<ClassMapping, ReferenceContext>();
+                        _forwardReferences.Clear();
+                        _forwardReferenceParentCache.Clear();
+                        _globalEntities.Clear();
+                        LoadFromWorkbook(workbook);
+                    }
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("type");
             }
 
-            //refresh cache. This might change in between two loadings
-            _multiRowIndicesCache = new Dictionary<string, int[]>();
-            _isMultiRowMappingCache = new Dictionary<ClassMapping, bool>();
-            _referenceContexts = new Dictionary<ClassMapping, ReferenceContext>();
-            _forwardReferences.Clear();
-            _globalEntities.Clear();
 
-            //create spreadsheet representaion 
-            LoadFromWoorkbook(workbook);
+
         }
 
-        private void LoadFromWoorkbook(IWorkbook workbook)
+        private void LoadFromWorkbook(WorkbookPart workbook)
         {
             //get all data tables
             if (Mapping.ClassMappings == null || !Mapping.ClassMappings.Any())
                 return;
 
-            var sheetsNumber = workbook.NumberOfSheets;
-            var partialSheets = new List<ISheet>();
-            for (var i = 0; i < sheetsNumber; i++)
+            var partialSheets = new List<WorksheetPart>();
+            _sharedStringTable = workbook?.SharedStringTablePart?.SharedStringTable;
+            foreach (Sheet worksheet in workbook.Workbook.Sheets)
             {
-                var sheetName = workbook.GetSheetName(i);
+                var sheetName = worksheet.Name;
                 var mapping =
                     Mapping.ClassMappings.FirstOrDefault(
                         m => string.Equals(sheetName, m.TableName, StringComparison.OrdinalIgnoreCase));
                 if (mapping == null)
                     continue;
-                var sheet = workbook.GetSheet(sheetName);
+                var workSheetPart = (WorksheetPart)workbook.GetPartById(worksheet.Id);
 
                 if (mapping.IsPartial)
                 {
-                    partialSheets.Add(sheet);
+                    ProcessPartialSheets(workSheetPart, sheetName);
                     continue;
                 }
 
-                LoadFromSheet(sheet, mapping);
+                LoadFromSheet(workSheetPart, mapping);
             }
 
-            ProcessPartialSheets(partialSheets);
+
+
+
+            //be happy
+        }
+        public void ResolveReferences()
+        {
 
             //resolve references (don't use foreach as new references might be added to the queue during the processing)
             while (_forwardReferences.Count != 0)
@@ -103,91 +119,85 @@ namespace Xbim.IO.Table
                 var reference = _forwardReferences.Dequeue();
                 reference.Resolve();
             }
-
-            //be happy
         }
-
-        private void ProcessPartialSheets(IEnumerable<ISheet> partialSheets)
+        private void ProcessPartialSheets(WorksheetPart sheet, string sheetName)
         {
-            foreach (var sheet in partialSheets)
+            var mapping =
+                Mapping.ClassMappings.FirstOrDefault(
+                    m => string.Equals(sheetName, m.TableName, StringComparison.OrdinalIgnoreCase));
+            if (mapping == null)
+                return;
+            SheetData sheetData = sheet.Worksheet.Elements<SheetData>().First();
+            AdjustMapping(sheetData, mapping);
+            CacheColumnIndices(mapping);
+            var context = GetReferenceContext(mapping);
+            var emptyRows = 0;
+            foreach (Row row in sheetData.Elements<Row>())
             {
-                var mapping =
-                    Mapping.ClassMappings.FirstOrDefault(
-                        m => string.Equals(sheet.SheetName, m.TableName, StringComparison.OrdinalIgnoreCase));
-                if (mapping == null)
+                //skip header row
+                if (row == null || row.RowIndex == 1)
                     continue;
-
-                AdjustMapping(sheet, mapping);
-                CacheColumnIndices(mapping);
-                var context = GetReferenceContext(mapping);
-
-                var enumerator = sheet.GetRowEnumerator();
-                var emptyRows = 0;
-                while (enumerator.MoveNext())
+                var cells = row.Elements<Cell>().ToList();
+                if (!cells.Any() ||
+                 cells.All(c => c.DataType == null) ||
+                     cells.All(c => c.DataType == CellValues.SharedString && string.IsNullOrWhiteSpace(c.InnerText)))
                 {
-                    var row = enumerator.Current as IRow;
-                    //skip header row
-                    if (row == null || row.RowNum == 0)
-                        continue;
+                    emptyRows++;
+                    if (emptyRows == 3)
+                        //break processing if this is third empty row
+                        break;
+                    //skip empty row
+                    continue;
+                }
+                emptyRows = 0;
 
-                    if (!row.Cells.Any() || row.Cells.All(c => c.CellType == CellType.Blank))
-                    {
-                        emptyRows++;
-                        if (emptyRows == 3)
-                            //break processing if this is third empty row
-                            break;
-                        //skip empty row
-                        continue;
-                    }
-                    emptyRows = 0;
-
-                    context.LoadData(row, false);
-                    var entities = GetReferencedEntities(context);
-                    var parentContext = context.Children.FirstOrDefault(c => c.ContextType == ReferenceContextType.Parent);
-                    if (parentContext == null)
-                    {
-                        Log.WriteLine("Table {0} is marked as a partial table but it doesn't have any parent mapping defined");
-                        continue;
-                    }
-                    foreach (var entity in entities)
-                    {
-                        _forwardReferences.Enqueue(new ForwardReference(entity, parentContext, this));
-                    }
+                context.LoadData(cells, false);
+                var entities = GetReferencedEntities(context);
+                var parentContext = context.Children.FirstOrDefault(c => c.ContextType == ReferenceContextType.Parent);
+                if (parentContext == null)
+                {
+                    Log.WriteLine("Table {0} is marked as a partial table but it doesn't have any parent mapping defined");
+                    continue;
+                }
+                foreach (var entity in entities)
+                {
+                    _forwardReferences.Enqueue(new ForwardReference(entity, parentContext, this));
                 }
             }
+
         }
-
-        private void LoadFromSheet(ISheet sheet, ClassMapping mapping)
+        private void LoadFromSheet(WorksheetPart sheetPart, ClassMapping mapping)
         {
-            //if there is only header in a sheet, don't waste resources
-            if (sheet.LastRowNum < 1)
-                return;
 
+
+            SheetData sheetData = sheetPart.Worksheet.Elements<SheetData>().First();
+            //if there is only header in a sheet, don't waste resources
+            if (sheetData.Elements<Row>().LastOrDefault().RowIndex < 2)
+                return;
             //adjust mapping to sheet in case columns are in a different order
-            AdjustMapping(sheet, mapping);
+            AdjustMapping(sheetData, mapping);
             CacheColumnIndices(mapping);
 
             //cache key columns
             CacheMultiRowIndices(mapping);
 
-            //cache contexts
+            ////cache contexts
             var context = GetReferenceContext(mapping);
 
-            //iterate over rows (be careful about MultiRow != None, merge values if necessary)
-            var enumerator = sheet.GetRowEnumerator();
-            IRow lastRow = null;
-            IPersistEntity lastEntity = null;
-            var emptyCells = 0;
-            while (enumerator.MoveNext())
+            ////iterate over rows (be careful about MultiRow != None, merge values if necessary)
+            foreach (Row row in sheetData.Elements<Row>())
             {
-                var row = enumerator.Current as IRow;
-                //skip header row
-                if (row == null || row.RowNum == 0)
-                    continue;
+                IPersistEntity lastEntity = null;
+                var emptyCells = 0;
+                Row lastRow = null;
 
-                if (!row.Cells.Any()  || 
-                    row.Cells.All(c => c.CellType == CellType.Blank) ||
-                    row.Cells.All(c => c.CellType == CellType.String &&  string.IsNullOrWhiteSpace(c.StringCellValue)))
+                //skip header row
+                if (row == null || row.RowIndex.Value == 1)
+                    continue;
+                var cells = row.Elements<Cell>().ToList();
+
+                if (!cells.Any()
+                    || cells.All(c => !CheckIfCellHasValue(c, "", out string value)))
                 {
                     emptyCells++;
                     if (emptyCells == 3)
@@ -199,7 +209,7 @@ namespace Xbim.IO.Table
                 emptyCells = 0;
 
                 //load data into the context
-                context.LoadData(row, true);
+                context.LoadData(cells, true);
 
                 // check if there are any data to create entity
                 if (!context.HasData)
@@ -213,10 +223,12 @@ namespace Xbim.IO.Table
                     continue;
                 }
 
-                //last row might be used in case this is a MultiRow
+                //last row might be used in case this is a multirow
                 lastEntity = LoadFromRow(row, context, lastRow, lastEntity);
+                AddRowNumber(lastEntity, context, (int)row.RowIndex.Value);
                 lastRow = row;
             }
+
         }
 
         private ReferenceContext GetReferenceContext(ClassMapping mapping)
@@ -251,7 +263,7 @@ namespace Xbim.IO.Table
                     .Where(p => p.IsMultiRowIdentity)
                     .Select(m => m.ColumnIndex)
                     .ToArray();
-           
+
             if (existing != null)
             {
                 //update and check if it is consistent. Report inconsistency.
@@ -264,7 +276,8 @@ namespace Xbim.IO.Table
 
         }
 
-        private IPersistEntity LoadFromRow(IRow row, ReferenceContext context, IRow lastRow, IPersistEntity lastEntity)
+
+        private IPersistEntity LoadFromRow(Row row, ReferenceContext context, Row lastRow, IPersistEntity lastEntity)
         {
             var multirow = IsMultiRow(row, context.CMapping, lastRow);
             if (multirow)
@@ -290,7 +303,23 @@ namespace Xbim.IO.Table
 
 
             //get type of the coresponding object from ClassMapping or from a type hint, create instance
-            return ResolveContext(context, -1, false);
+            var entity = ResolveContext(context, -1, false);
+            return entity;
+        }
+        private void AddRowNumber(IPersistEntity entity, ReferenceContext context, int rowNum)
+        {
+            if (string.IsNullOrEmpty(Mapping.RowNumber))
+                return;
+
+            // TODO: Consider caching the delegate to avoid reflection lookup.
+            var field = context.SegmentType.Derives.FirstOrDefault(d => d.Name == Mapping.RowNumber);
+            if (field == null)
+                return;
+            if (rowNum == 0)
+            {
+
+            }
+            field.PropertyInfo.SetValue(entity, rowNum);  // 
         }
 
         /// <summary>
@@ -335,7 +364,7 @@ namespace Xbim.IO.Table
             }
 
             //create new entity if new global one was not created
-            if(entity == null)
+            if (entity == null)
                 entity = Model.Instances.New(eType.Type);
 
             //scalar values to be set to the entity
@@ -348,7 +377,7 @@ namespace Xbim.IO.Table
                 {
                     //is should be ItemSet which is always initialized and inherits from IList
                     var list = scalar.PropertyInfo.GetValue(entity, null) as IList;
-                    if(list == null)
+                    if (list == null)
                         continue;
                     foreach (var value in values)
                         list.Add(value);
@@ -356,8 +385,8 @@ namespace Xbim.IO.Table
                 }
 
                 //it is a single value
-                var val = scalarIndex < 0 ? values[0]: (values.Length >= scalarIndex+1 ? values[scalarIndex] : null);
-                if(val != null)
+                var val = scalarIndex < 0 ? values[0] : (values.Length >= scalarIndex + 1 ? values[scalarIndex] : null);
+                if (val != null)
                     scalar.PropertyInfo.SetValue(entity, val, scalar.Index != null ? new[] { scalar.Index } : null);
             }
 
@@ -375,16 +404,16 @@ namespace Xbim.IO.Table
 
                 if (childContext.ContextType == ReferenceContextType.EntityList)
                 {
-                        var depth =
-                            childContext.ScalarChildren.Where(c => c.Values != null)
-                                .Select(c => c.Values.Length)
-                                .OrderByDescending(v => v)
-                                .FirstOrDefault();
-                        for (var i = 0; i < depth; i++)
-                        {
-                            var child = depth == 1 ? ResolveContext(childContext, -1, false) : ResolveContext(childContext, i, false);
-                            AssignEntity(entity, child, childContext);
-                        }    
+                    var depth =
+                        childContext.ScalarChildren.Where(c => c.Values != null)
+                            .Select(c => c.Values.Length)
+                            .OrderByDescending(v => v)
+                            .FirstOrDefault();
+                    for (var i = 0; i < depth; i++)
+                    {
+                        var child = depth == 1 ? ResolveContext(childContext, -1, false) : ResolveContext(childContext, i, false);
+                        AssignEntity(entity, child, childContext);
+                    }
                     continue;
                 }
 
@@ -409,7 +438,7 @@ namespace Xbim.IO.Table
                 return;
             }
 
-            var index = context.Index == null ? null : new[] {context.Index};
+            var index = context.Index == null ? null : new[] { context.Index };
             //inverse property
             if (context.MetaProperty != null && context.MetaProperty.IsInverse)
             {
@@ -432,7 +461,7 @@ namespace Xbim.IO.Table
                     remoteProp.PropertyInfo.SetValue(entity, parent, index);
                     return;
                 }
-                Log.WriteLine("It wasn't possible to add entity {0} as a {1} to parent {2}", 
+                Log.WriteLine("It wasn't possible to add entity {0} as a {1} to parent {2}",
                     entity.ExpressType.ExpressName, context.Segment, entityType.ExpressName);
                 return;
             }
@@ -504,7 +533,7 @@ namespace Xbim.IO.Table
                 }
                 foreach (var e in entities)
                 {
-                    if (!IsValidEntity(context, e)) 
+                    if (!IsValidEntity(context, e))
                         continue;
                     entity = e as IPersistEntity;
                     break;
@@ -530,7 +559,7 @@ namespace Xbim.IO.Table
                 if (list != null && subContext.Values != null && subContext.Values.Length > 0)
                     list.Add(subContext.Values[0]);
             }
-            
+
         }
 
         internal static bool IsValidEntity(ReferenceContext context, object entity)
@@ -553,10 +582,10 @@ namespace Xbim.IO.Table
             var vals = scalar.Values;
             var eVal = prop.GetValue(entity, null);
             if (scalar.ContextType != ReferenceContextType.ScalarList)
-                return eVal != null && vals.Any(v => v!=null && v.Equals(eVal));
+                return eVal != null && vals.Any(v => v != null && v.Equals(eVal));
             var list = eVal as IEnumerable;
             return list != null &&
-                //it might be a multivalue
+                   //it might be a multivalue
                    list.Cast<object>().All(item => vals.Any(v => v.Equals(item)));
         }
 
@@ -570,7 +599,7 @@ namespace Xbim.IO.Table
             return gt.Any(t => t.Type == type || t.SubTypes.Any(st => st.Type == type));
         }
 
-        private bool IsMultiRow(IRow row, ClassMapping mapping, IRow lastRow)
+        private bool IsMultiRow(Row row, ClassMapping mapping, Row lastRow)
         {
             if (lastRow == null) return false;
 
@@ -597,42 +626,40 @@ namespace Xbim.IO.Table
                 _isMultiRowMappingCache.Add(mapping, true);
             }
 
-            
+
             var keyIndices = GetIdentityIndices(mapping);
             foreach (var index in keyIndices)
             {
-                var cellA = row.GetCell(index);
-                var cellB = lastRow.GetCell(index);
+                var cellA = row.Elements<Cell>().FirstOrDefault(x => GetColumnIndexFromCell(x) == index);
+                var cellB = lastRow.Elements<Cell>().FirstOrDefault(x => GetColumnIndexFromCell(x) == index);
 
-                if(cellA == null || cellB == null)
+                if (cellA == null || cellB == null)
                     return false;
 
-                if (cellA.CellType == CellType.Blank || cellB.CellType == CellType.Blank)
+                if (cellA.DataType == null || string.IsNullOrEmpty(cellA.InnerText) || cellB.DataType == null || string.IsNullOrEmpty(cellA.InnerText))
                     return false;
 
-                if (cellA.CellType != cellB.CellType)
+                if (cellA.DataType.Value != cellB.DataType.Value)
                     return false;
-
-                switch (cellA.CellType)
+                if (cellA.DataType == CellValues.Number)
                 {
-                    case CellType.Numeric:
-                        if (Math.Abs(cellA.NumericCellValue - cellB.NumericCellValue) > 1e-9)
-                            return false;
-                        break;
-                    case CellType.String:
-                        if (cellA.StringCellValue != cellB.StringCellValue)
-                            return false;
-                        break;
-                    case CellType.Boolean:
-                        if (cellA.BooleanCellValue != cellB.BooleanCellValue)
-                            return false;
-                        break;
+                    if (Math.Abs(double.Parse(cellA.InnerText) - double.Parse(cellB.InnerText)) > 1e-9)
+                        return false;
+                }
+                else if (cellA.DataType == CellValues.String)
+                {
+                    if (cellA.InnerText != cellB.InnerText)
+                        return false;
+                }
+                else if (cellA.DataType == CellValues.Boolean)
+                {
+                    if (bool.Parse(cellA.InnerText) != bool.Parse(cellB.InnerText))
+                        return false;
                 }
             }
 
             return true;
         }
-
         /// <summary>
         /// Returns true if it exists, FALSE if new entity fas created and needs to be filled in with data
         /// </summary>
@@ -658,11 +685,11 @@ namespace Xbim.IO.Table
                         {
                             if (c.Values.Length == 1) return c.Values[0];
                             return c.Values.Length >= scalarIndex + 1 ? c.Values[scalarIndex] : null;
-                        }  ).Where(v => v != null):
+                        }).Where(v => v != null) :
 
                     context.AllScalarChildren.OrderBy(c => c.Segment)
                         .Where(c => c.Values != null)
-                        .SelectMany(c => c.Values.Where(cv=>cv!=null).Select(v => v.ToString()));
+                        .SelectMany(c => c.Values.Where(cv => cv != null).Select(v => v.ToString()));
             var key = string.Join(", ", keys);
             if (entities.TryGetValue(key, out entity))
                 return true;
@@ -672,7 +699,8 @@ namespace Xbim.IO.Table
             return false;
         }
 
-        internal Type GetConcreteType(ReferenceContext context, ICell cell)
+
+        internal Type GetConcreteType(ReferenceContext context, Cell cell)
         {
             var cType = context.SegmentType;
             if (cType != null && !cType.Type.IsAbstract)
@@ -683,7 +711,7 @@ namespace Xbim.IO.Table
             {
                 var resolver = Resolvers.FirstOrDefault(r => r.CanResolve(cType));
                 if (resolver != null)
-                    return resolver.Resolve(cType.Type, cell, context.CMapping, context.Mapping);
+                    return resolver.Resolve(cType.Type, cell, context.CMapping, context.Mapping, _sharedStringTable);
             }
 
             if (context.PropertyInfo != null)
@@ -693,10 +721,10 @@ namespace Xbim.IO.Table
                 if (pType.IsValueType || pType == typeof(string))
                     return pType;
 
-                if (typeof (IEnumerable).IsAssignableFrom(pType))
+                if (typeof(IEnumerable).IsAssignableFrom(pType))
                 {
                     pType = pType.GetGenericArguments()[0];
-                    if (pType.IsValueType || pType == typeof (string))
+                    if (pType.IsValueType || pType == typeof(string))
                         return pType;
                 }
 
@@ -704,7 +732,7 @@ namespace Xbim.IO.Table
                 {
                     var resolver = Resolvers.FirstOrDefault(r => r.CanResolve(pType));
                     if (resolver != null)
-                        return resolver.Resolve(pType, cell, context.CMapping, context.Mapping);
+                        return resolver.Resolve(pType, cell, context.CMapping, context.Mapping,_sharedStringTable);
                 }
             }
 
@@ -712,7 +740,6 @@ namespace Xbim.IO.Table
                 context.CMapping.TableName, context.CMapping.Class);
             return null;
         }
-
         private ExpressType GetConcreteType(ReferenceContext context)
         {
             var cType = context.SegmentType;
@@ -727,14 +754,14 @@ namespace Xbim.IO.Table
                 var eType = MetaData.ExpressType(fbTypeName.ToUpper());
                 if (eType != null && !eType.Type.IsAbstract)
                     return eType;
-            }    
-            
+            }
+
 
             //use custom type resolver if there is a one which can resolve this type
             if (cType != null && Resolvers != null && Resolvers.Any())
             {
                 var resolver = Resolvers.FirstOrDefault(r => r.CanResolve(cType));
-                if(resolver != null)
+                if (resolver != null)
                     return resolver.Resolve(cType, context, MetaData);
             }
 
@@ -746,21 +773,21 @@ namespace Xbim.IO.Table
         private static void CacheColumnIndices(ClassMapping mapping)
         {
             foreach (var pMap in mapping.PropertyMappings)
-                pMap.ColumnIndex = CellReference.ConvertColStringToIndex(pMap.Column);
+                pMap.ColumnIndex = GetColumnIndexFromString(pMap.Column);
         }
-
-        private static void AdjustMapping(ISheet sheet, ClassMapping mapping)
+      
+        private void AdjustMapping(SheetData sheetData, ClassMapping mapping)
         {
-            //there is only header
-            if (sheet.LastRowNum < 1)
+            if (sheetData.Elements<Row>().LastOrDefault().RowIndex < 2)
                 return;
 
+
+            Row headerRow = sheetData.Elements<Row>().FirstOrDefault();
             //get the header row and analyze it
-            var headerRow = sheet.GetRow(0);
             if (headerRow == null)
                 return;
 
-            var headings = headerRow.Cells.Where(c => c.CellType == CellType.String || !string.IsNullOrWhiteSpace(c.StringCellValue)).ToList();
+            var headings = headerRow.Elements<Cell>().Where(c => c.DataType.Value == CellValues.String || c.DataType.Value == CellValues.SharedString || !string.IsNullOrWhiteSpace(c.InnerText)).ToList();
             if (!headings.Any())
                 return;
             var mappings = mapping.PropertyMappings;
@@ -769,9 +796,13 @@ namespace Xbim.IO.Table
 
             foreach (var heading in headings)
             {
-                var index = heading.ColumnIndex;
-                var column = CellReference.ConvertNumToColString(index).ToUpper();
-                var header = heading.StringCellValue;
+                var index = GetColumnIndexFromCell(heading);
+                var column = ColumnIndexToName(index).ToUpper();
+                string header;
+                if (heading.DataType.Value == CellValues.SharedString)
+                    header = _sharedStringTable.ElementAt(int.Parse(heading.InnerText)).InnerText;
+                else
+                    header = heading.CellValue.Text;
 
                 var pMapping = mappings.FirstOrDefault(m => string.Equals(m.Header, header, StringComparison.OrdinalIgnoreCase));
                 //if no mapping is found things might go wrong or it is just renamed
@@ -799,8 +830,8 @@ namespace Xbim.IO.Table
             //try to assign letters to the unassigned columns
             foreach (var heading in headings)
             {
-                var index = heading.ColumnIndex;
-                var column = CellReference.ConvertNumToColString(index).ToUpper();
+                var index = GetColumnIndexFromCell(heading);
+                var column = ColumnIndexToName(index).ToUpper();
                 var pMapping = mappings.FirstOrDefault(m => string.Equals(m.Column, column, StringComparison.OrdinalIgnoreCase));
                 if (pMapping != null)
                     continue;
@@ -818,13 +849,52 @@ namespace Xbim.IO.Table
             foreach (var propertyMapping in unassigned)
                 mapping.PropertyMappings.Remove(propertyMapping);
         }
+        static string ColumnIndexToName(int columnIndex)
+        {
+            string columnName = "";
+            while (columnIndex > 0)
+            {
+                int remainder = (columnIndex - 1) % 26;
+                columnName = (char)(65 + remainder) + columnName;
+                columnIndex = (columnIndex - 1) / 26;
+            }
+            return columnName;
+        }
+        public static int GetColumnIndexFromCell(Cell cell)
+        {
+            // Extract the column portion from the cell reference
+            string columnPart = "";
+            foreach (char c in cell.CellReference.Value)
+            {
+                if (char.IsLetter(c))
+                    columnPart += c;
+                else
+                    break;
+            }
 
+            // Subtract 1 to make it zero-based index
+            return GetColumnIndexFromString(columnPart);
+        }
+        public static int GetColumnIndexFromString(string columnPart)
+        {
+
+            // Convert column letters to column index
+            int columnIndex = 0;
+            foreach (char c in columnPart)
+            {
+                columnIndex *= 26;
+                columnIndex += char.ToUpper(c) - 'A' + 1;
+            }
+
+            // Subtract 1 to make it zero-based index
+            return columnIndex;
+        }
         private static Type GetNonNullableType(Type type)
         {
             //only value types can be nullable
             if (!type.IsValueType) return type;
 
-            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof (Nullable<>) ? Nullable.GetUnderlyingType(type) : type;
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) ? Nullable.GetUnderlyingType(type) : type;
         }
 
         internal object CreateSimpleValue(Type type, string value)
@@ -850,7 +920,7 @@ namespace Xbim.IO.Table
             {
                 return isExpress ? Activator.CreateInstance(propType, value) : value;
             }
-            if (underlying == typeof (double) || underlying == typeof (float))
+            if (underlying == typeof(double) || underlying == typeof(float))
             {
                 double d;
                 if (double.TryParse(value, out d))
@@ -859,19 +929,19 @@ namespace Xbim.IO.Table
                     : d;
                 return null;
             }
-            if (underlying == typeof (int) || underlying == typeof (long))
+            if (underlying == typeof(int) || underlying == typeof(long))
             {
                 var l = type == typeof(int) ? Convert.ToInt32(value) : Convert.ToInt64(value);
                 return isExpress ? Activator.CreateInstance(propType, l) : l;
             }
-            if (underlying == typeof (DateTime))
+            if (underlying == typeof(DateTime))
             {
                 DateTime date;
-                return !DateTime.TryParse(value, null, DateTimeStyles.RoundtripKind, out date) ? 
-                    DateTime.Parse("1900-12-31T23:59:59", null, DateTimeStyles.RoundtripKind) : 
+                return !DateTime.TryParse(value, null, DateTimeStyles.RoundtripKind, out date) ?
+                    DateTime.Parse("1900-12-31T23:59:59", null, DateTimeStyles.RoundtripKind) :
                     date;
             }
-            if (underlying == typeof (bool))
+            if (underlying == typeof(bool))
             {
                 bool i;
                 if (bool.TryParse(value, out i))
@@ -895,16 +965,31 @@ namespace Xbim.IO.Table
             return null;
         }
 
-        internal object CreateSimpleValue(Type type, ICell cell)
+        internal bool CheckIfCellHasValue(Cell cell, string defaultValue, out string value)
         {
-            //return if there is no value in she cell
-            if (cell.CellType == CellType.Blank) return null;
+            try
+            {
+                var cellState = cell != null;
+                value = cellState ? cell.DataType != null ? (cell.DataType == CellValues.SharedString ? _sharedStringTable.ElementAt(int.Parse(cell.InnerText)).InnerText : cell.CellValue?.Text) : cell.CellValue?.Text : "";
+                return cellState && (value != null &&
+                         !string.Equals(value, defaultValue, StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(value) && !string.IsNullOrWhiteSpace(value));
+            }
+            catch
+            {
+                value = "";
+                return false;
+            }
+
+        }
+        internal object CreateSimpleValue(Type type, Cell cell, string strValue)
+        {
+
             type = GetNonNullableType(type);
-            
+
             var propType = type;
             var isExpress = false;
 
-            //dig deeper if it is an express value type
+            // Dig deeper if it is an express value type
             if (type.IsValueType && typeof(IExpressValueType).IsAssignableFrom(type))
             {
                 var eType = MetaData.ExpressType(type);
@@ -918,20 +1003,29 @@ namespace Xbim.IO.Table
             if (typeof(string) == type)
             {
                 string value = null;
-                switch (cell.CellType)
+                if (cell.DataType == null)
                 {
-                    case CellType.Numeric:
-                        value = cell.NumericCellValue.ToString(CultureInfo.InvariantCulture);
-                        break;
-                    case CellType.String:
-                        value = cell.StringCellValue;
-                        break;
-                    case CellType.Boolean:
-                        value = cell.BooleanCellValue.ToString();
-                        break;
-                    default:
-                        Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
-                        break;
+                    value = strValue;
+                }
+                else if (cell.DataType.Value == CellValues.Number)
+                {
+                    value = strValue.ToString(CultureInfo.InvariantCulture);
+                }
+                else if (cell.CellFormula != null || cell.DataType.Value == CellValues.String)
+                {
+                    value = strValue;
+                }
+                else if (cell.DataType.Value == CellValues.SharedString)
+                {
+                    value = strValue;
+                }
+                else if (cell.DataType.Value == CellValues.Boolean)
+                {
+                    value = bool.Parse(strValue).ToString();
+                }
+                else
+                {
+                    Log.WriteLine("There is no suitable value for {0} in cell {1}", propType.Name, cell.CellReference.Value);
                 }
                 return isExpress ? Activator.CreateInstance(propType, value) : value;
             }
@@ -939,108 +1033,189 @@ namespace Xbim.IO.Table
             if (type == typeof(DateTime))
             {
                 var date = default(DateTime);
-                switch (cell.CellType)
+                if (cell.DataType == null)
                 {
-                    case CellType.Numeric:
-                        date = cell.DateCellValue;
-                        break;
-                    case CellType.String:
-                        if (!DateTime.TryParse(cell.StringCellValue, null, DateTimeStyles.RoundtripKind, out date))
-                            //set to default value according to specification
+                    date = DateTime.FromOADate(double.Parse(cell.InnerText));
+                }
+                else if (cell.DataType.Value == CellValues.Number)
+                {
+                    date = DateTime.FromOADate(double.Parse(cell.InnerText));
+                }
+                else if (cell.DataType.Value == CellValues.String)
+                {
+                    if (!DateTime.TryParse(strValue, null, DateTimeStyles.RoundtripKind, out date))
+                    {
+                        Log.WriteLine("There is no suitable value for {0} in cell {1} Unable to parse '{2}'", propType.Name, cell.CellReference.Value, cell.InnerText);
+                        // Set to default value according to specification
+                        date = DateTime.Parse("1900-12-31T23:59:59", null, DateTimeStyles.RoundtripKind);
+                    }
+                }
+                else if (cell.DataType.Value == CellValues.SharedString)
+                {
+                    if (_sharedStringTable != null)
+                    {
+                        if (!DateTime.TryParse(strValue, null, DateTimeStyles.RoundtripKind, out date))
+                        {
+                            Log.WriteLine("There is no suitable value for {0} in cell {1} Unable to parse '{2}'", propType.Name, cell.CellReference.Value, cell.InnerText);
+                            // Set to default value according to specification
                             date = DateTime.Parse("1900-12-31T23:59:59", null, DateTimeStyles.RoundtripKind);
-                        break;
-                    default:
-                        Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
-                        break;
+                        }
+                    }
+
+                }
+                else
+                {
+                    Log.WriteLine("There is no suitable value for {0} in cell {1}", propType.Name, cell.CellReference.Value);
                 }
                 return date;
             }
 
             if (type == typeof(double) || type == typeof(float))
             {
-                switch (cell.CellType)
+                if (cell.DataType == null)
                 {
-                    case CellType.Numeric:
-                        return isExpress
-                            ? Activator.CreateInstance(propType, cell.NumericCellValue)
-                            : cell.NumericCellValue;
-                    case CellType.String:
-                        double d;
-                        if (double.TryParse(cell.StringCellValue, out d))
-                            return isExpress
-                            ? Activator.CreateInstance(propType, d)
-                            : d;
-                        break;
-                    default:
-                        Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
-                        break;
+                    double doubleValue;
+
+                    if (double.TryParse(strValue, out doubleValue))
+                    {
+                        return isExpress ? Activator.CreateInstance(propType, doubleValue) : doubleValue;
+                    }
+                    else
+                    {
+                        Log.WriteLine("There is no suitable value for {0} in cell {1} Unable to parse '{2}'", propType.Name, cell.CellReference.Value, strValue);
+                    }
+                }
+                if (cell.CellFormula != null || cell.DataType.Value == CellValues.Number)
+                {
+                    if(double.TryParse(strValue,out double value))
+                    {
+                        return isExpress ? Activator.CreateInstance(propType, value) : value;
+
+                    }
+                }
+                else if (cell.DataType.Value == CellValues.String)
+                {
+                    double d;
+                    if (double.TryParse(strValue, out d))
+                    {
+                        return isExpress ? Activator.CreateInstance(propType, d) : d;
+                    }
+                    else
+                    {
+                        Log.WriteLine("There is no suitable value for {0} in cell {1} Unable to parse '{2}'", propType.Name, cell.CellReference.Value, strValue);
+                    }
+                }
+                else if (cell.DataType.Value == CellValues.SharedString)
+                {
+                    double doubleValue;
+
+                    if (double.TryParse(strValue, out doubleValue))
+                    {
+                        return isExpress ? Activator.CreateInstance(propType, doubleValue) : doubleValue;
+                    }
+                    else
+                    {
+                        Log.WriteLine("There is no suitable value for {0} in cell {1} Unable to parse '{2}'", propType.Name, cell.CellReference.Value, strValue);
+                    }
+
+                }
+                else
+                {
+                    Log.WriteLine("There is no suitable value for {0} in cell {1}", propType.Name, cell.CellReference.Value);
                 }
                 return null;
             }
 
             if (type == typeof(int) || type == typeof(long))
             {
-                switch (cell.CellType)
+                if (cell.DataType == null)
                 {
-                    case CellType.Numeric:
-                    case CellType.String:
-                        var l = type == typeof(int) ? Convert.ToInt32(cell.NumericCellValue) : Convert.ToInt64(cell.NumericCellValue);
-                        return isExpress ? Activator.CreateInstance(propType, l) : l;
-                    default:
-                        Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
-                        break;
+                    var l = type == typeof(int) ? Convert.ToInt32(strValue) : Convert.ToInt64(strValue);
+                    return isExpress ? Activator.CreateInstance(propType, l) : l;
+                }
+                else if (cell.DataType.Value == CellValues.Number || cell.DataType.Value == CellValues.String || cell.DataType.Value == CellValues.InlineString)
+                {
+                    var l = type == typeof(int) ? Convert.ToInt32(strValue) : Convert.ToInt64(strValue);
+                    return isExpress ? Activator.CreateInstance(propType, l) : l;
+                }
+                else if (cell.DataType.Value == CellValues.SharedString)
+                {
+                    var l = type == typeof(int) ? Convert.ToInt32(strValue) : Convert.ToInt64(strValue);
+                    return isExpress ? Activator.CreateInstance(propType, l) : l;
+                }
+                else
+                {
+                    Log.WriteLine("There is no suitable value for {0} in cell {1}", propType.Name, cell.CellReference.Value);
                 }
                 return null;
             }
 
             if (type == typeof(bool))
             {
-                switch (cell.CellType)
+                if (cell.DataType == null)
                 {
-                    case CellType.Numeric:
-                        var b = (int)cell.NumericCellValue != 0;
-                        return isExpress ? Activator.CreateInstance(propType, b) : b;
-                    case CellType.String:
-                        bool i;
-                        if (bool.TryParse(cell.StringCellValue, out i))
-                            return isExpress ? Activator.CreateInstance(propType, i) : i;
-                            Log.WriteLine("Wrong boolean format of {0} in cell {1}{2}, sheet {3}", cell.StringCellValue, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
-                        break;
-                    case CellType.Boolean:
-                            return isExpress ? Activator.CreateInstance(propType, (object)cell.BooleanCellValue) : cell.BooleanCellValue;
-                    default:
-                            Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
-                        break;
+                    if( int.TryParse(strValue,out int intBool))
+                    return isExpress ? Activator.CreateInstance(propType, intBool != 0) : intBool != 0;
+                }
+               else if (cell.DataType.Value == CellValues.Number)
+                {
+                    var b = int.Parse(strValue) != 0;
+                    return isExpress ? Activator.CreateInstance(propType, b) : b;
+                }
+                else if (cell.DataType.Value == CellValues.String || cell.DataType.Value == CellValues.InlineString)
+                {
+                    bool i;
+                    if (bool.TryParse(strValue, out i))
+                        return isExpress ? Activator.CreateInstance(propType, i) : i;
+                    Log.WriteLine("Wrong boolean format of {0} in cell {1}", propType.Name, cell.CellReference.Value);
+                }
+                else if (cell.DataType.Value == CellValues.SharedString)
+                {
+                    bool i;
+                    if (bool.TryParse(strValue, out i))
+                        return isExpress ? Activator.CreateInstance(propType, i) : i;
+                    Log.WriteLine("Wrong boolean format of {0} in cell {1}", propType.Name, cell.CellReference.Value);
+                }
+                else if (cell.DataType.Value == CellValues.Boolean)
+                {
+                    bool i;
+                    if (bool.TryParse(strValue, out i))
+                        return isExpress ? Activator.CreateInstance(propType, (object)i) : i;
+                    i = strValue == "1";
+                    return isExpress ? Activator.CreateInstance(propType, (object)i) : i;
+                }
+                else
+                {
+                    Log.WriteLine("There is no suitable value for {0} in cell {1}", propType.Name, cell.CellReference.Value);
                 }
                 return null;
             }
 
-            //enumeration
+            // Enumeration
             if (type.IsEnum)
             {
-                if (cell.CellType != CellType.String)
+                if (cell.DataType != CellValues.String && cell.DataType != CellValues.SharedString)
                 {
-                    Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
+                    Log.WriteLine("There is no suitable value for {0} in cell {1}", propType.Name, cell.CellReference.Value);
                     return null;
                 }
                 try
                 {
-                    var eValue = cell.StringCellValue.Replace("-", "_");  // Hyphens aren't valid in c# enums, but have been seen in live data
+                    var eValue = strValue.Replace("-", "_");  // Hyphens aren't valid in C# enums, but have been seen in live data
                     var eMember = GetAliasEnumName(type, eValue);
-                    //if there was no alias try to parse the value
+                    // If there was no alias, try to parse the value
                     var val = Enum.Parse(type, eMember ?? eValue, true);
                     return val;
                 }
                 catch (Exception)
-                {                                  
-                    Log.WriteLine("There is no suitable value for {0} in cell {1}{2}, sheet {3}", propType.Name, CellReference.ConvertNumToColString(cell.ColumnIndex), cell.RowIndex + 1, cell.Sheet.SheetName);
+                {
+                    Log.WriteLine("There is no suitable value for {0} in cell {1}", propType.Name, cell.CellReference.Value);
                 }
             }
 
-            //if not suitable type was found, report it 
+            // If no suitable type was found, report it 
             throw new Exception("Unsupported type " + type.Name + " for value '" + cell + "'");
         }
-
         private string GetAliasEnumName(Type type, string alias)
         {
             string result;

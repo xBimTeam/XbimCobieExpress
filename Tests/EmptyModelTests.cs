@@ -4,19 +4,13 @@ using Xbim.IO.Esent;
 using System;
 using Xbim.IO.CobieExpress;
 using Xbim.Ifc;
+using Xbim.Common.Configuration;
 
 namespace Xbim.CobieExpress.Tests
 {
     [TestClass]
     public class EmptyModelTests
     {
-
-        [ClassInitialize]
-        public static void Initialize(TestContext testContext)
-        {
-            IfcStore.ModelProviderFactory.UseHeuristicModelProvider();
-        }
-
 
         [TestMethod]
         public void EsentInCobieModelTest()

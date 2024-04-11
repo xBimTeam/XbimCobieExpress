@@ -43,39 +43,39 @@ namespace Xbim.CobieExpress
 	public abstract partial class @CobieReferencedObject : PersistEntity, ICobieReferencedObject, IEquatable<@CobieReferencedObject>
 	{
 		#region ICobieReferencedObject explicit implementation
-		ICobieCreatedInfo ICobieReferencedObject.Created { 
- 
- 
-			get { return @Created; } 
-			set { Created = value as CobieCreatedInfo;}
-		}	
-		string ICobieReferencedObject.ExternalId { 
- 
-			get { return @ExternalId; } 
-			set { ExternalId = value;}
-		}	
-		string ICobieReferencedObject.AltExternalId { 
- 
-			get { return @AltExternalId; } 
-			set { AltExternalId = value;}
-		}	
-		ICobieExternalSystem ICobieReferencedObject.ExternalSystem { 
- 
- 
-			get { return @ExternalSystem; } 
-			set { ExternalSystem = value as CobieExternalSystem;}
-		}	
-		ICobieExternalObject ICobieReferencedObject.ExternalObject { 
- 
- 
-			get { return @ExternalObject; } 
-			set { ExternalObject = value as CobieExternalObject;}
-		}	
-		 
+		ICobieCreatedInfo ICobieReferencedObject.Created {
+
+
+			get { return @Created; }
+			set { Created = value as CobieCreatedInfo; }
+		}
+		string ICobieReferencedObject.ExternalId {
+
+			get { return @ExternalId; }
+			set { ExternalId = value; }
+		}
+		string ICobieReferencedObject.AltExternalId {
+
+			get { return @AltExternalId; }
+			set { AltExternalId = value; }
+		}
+		ICobieExternalSystem ICobieReferencedObject.ExternalSystem {
+
+
+			get { return @ExternalSystem; }
+			set { ExternalSystem = value as CobieExternalSystem; }
+		}
+		ICobieExternalObject ICobieReferencedObject.ExternalObject {
+
+
+			get { return @ExternalObject; }
+			set { ExternalObject = value as CobieExternalObject; }
+		}
+
 		#endregion
 
 		//internal constructor makes sure that objects are not created outside of the model/ assembly controlled area
-		internal CobieReferencedObject(IModel model, int label, bool activated) : base(model, label, activated)  
+		internal CobieReferencedObject(IModel model, int label, bool activated) : base(model, label, activated)
 		{
 		}
 
@@ -86,84 +86,84 @@ namespace Xbim.CobieExpress
 		private CobieExternalSystem _externalSystem;
 		private CobieExternalObject _externalObject;
 		#endregion
-	
+
 		#region Explicit attribute properties
 		[EntityAttribute(1, EntityAttributeState.Mandatory, EntityAttributeType.Class, EntityAttributeType.None, null, null, 1)]
-		public CobieCreatedInfo @Created 
-		{ 
-			get 
+		public CobieCreatedInfo @Created
+		{
+			get
 			{
-				if(_activated) return _created;
+				if (_activated) return _created;
 				Activate();
 				return _created;
-			} 
+			}
 			set
 			{
 				if (value != null && !(ReferenceEquals(Model, value.Model)))
 					throw new XbimException("Cross model entity assignment.");
-				SetValue( v =>  _created = v, _created, value,  "Created", 1);
-			} 
-		}	
+				SetValue(v => _created = v, _created, value, "Created", 1);
+			}
+		}
 		[EntityAttribute(2, EntityAttributeState.Optional, EntityAttributeType.None, EntityAttributeType.None, null, null, 2)]
-		public string @ExternalId 
-		{ 
-			get 
+		public string @ExternalId
+		{
+			get
 			{
-				if(_activated) return _externalId;
+				if (_activated) return _externalId;
 				Activate();
 				return _externalId;
-			} 
+			}
 			set
 			{
-				SetValue( v =>  _externalId = v, _externalId, value,  "ExternalId", 2);
-			} 
-		}	
+				SetValue(v => _externalId = v, _externalId, value, "ExternalId", 2);
+			}
+		}
 		[EntityAttribute(3, EntityAttributeState.Optional, EntityAttributeType.None, EntityAttributeType.None, null, null, 3)]
-		public string @AltExternalId 
-		{ 
-			get 
+		public string @AltExternalId
+		{
+			get
 			{
-				if(_activated) return _altExternalId;
+				if (_activated) return _altExternalId;
 				Activate();
 				return _altExternalId;
-			} 
+			}
 			set
 			{
-				SetValue( v =>  _altExternalId = v, _altExternalId, value,  "AltExternalId", 3);
-			} 
-		}	
+				SetValue(v => _altExternalId = v, _altExternalId, value, "AltExternalId", 3);
+			}
+		}
 		[EntityAttribute(4, EntityAttributeState.Optional, EntityAttributeType.Class, EntityAttributeType.None, null, null, 4)]
-		public CobieExternalSystem @ExternalSystem 
-		{ 
-			get 
+		public CobieExternalSystem @ExternalSystem
+		{
+			get
 			{
-				if(_activated) return _externalSystem;
+				if (_activated) return _externalSystem;
 				Activate();
 				return _externalSystem;
-			} 
+			}
 			set
 			{
 				if (value != null && !(ReferenceEquals(Model, value.Model)))
 					throw new XbimException("Cross model entity assignment.");
-				SetValue( v =>  _externalSystem = v, _externalSystem, value,  "ExternalSystem", 4);
-			} 
-		}	
+				SetValue(v => _externalSystem = v, _externalSystem, value, "ExternalSystem", 4);
+			}
+		}
 		[EntityAttribute(5, EntityAttributeState.Optional, EntityAttributeType.Class, EntityAttributeType.None, null, null, 5)]
-		public CobieExternalObject @ExternalObject 
-		{ 
-			get 
+		public CobieExternalObject @ExternalObject
+		{
+			get
 			{
-				if(_activated) return _externalObject;
+				if (_activated) return _externalObject;
 				Activate();
 				return _externalObject;
-			} 
+			}
 			set
 			{
 				if (value != null && !(ReferenceEquals(Model, value.Model)))
 					throw new XbimException("Cross model entity assignment.");
-				SetValue( v =>  _externalObject = v, _externalObject, value,  "ExternalObject", 5);
-			} 
-		}	
+				SetValue(v => _externalObject = v, _externalObject, value, "ExternalObject", 5);
+			}
+		}
 		#endregion
 
 
@@ -174,19 +174,19 @@ namespace Xbim.CobieExpress
 		{
 			switch (propIndex)
 			{
-				case 0: 
+				case 0:
 					_created = (CobieCreatedInfo)(value.EntityVal);
 					return;
-				case 1: 
+				case 1:
 					_externalId = value.StringVal;
 					return;
-				case 2: 
+				case 2:
 					_altExternalId = value.StringVal;
 					return;
-				case 3: 
+				case 3:
 					_externalSystem = (CobieExternalSystem)(value.EntityVal);
 					return;
-				case 4: 
+				case 4:
 					_externalObject = (CobieExternalObject)(value.EntityVal);
 					return;
 				default:
@@ -196,15 +196,25 @@ namespace Xbim.CobieExpress
 		#endregion
 
 		#region Equality comparers and operators
-        public bool Equals(@CobieReferencedObject other)
-	    {
-	        return this == other;
-	    }
-        #endregion
+		public bool Equals(@CobieReferencedObject other)
+		{
+			return this == other;
+		}
+		#endregion
 
 		#region Custom code (will survive code regeneration)
 		//## Custom code
-		//##
-		#endregion
-	}
+		[EntityAttribute(0, EntityAttributeState.Derived, EntityAttributeType.Class, EntityAttributeType.None, null, null, 0)]
+		public CobieContact CreatedBy => Created?.CreatedBy;
+
+		[EntityAttribute(0, EntityAttributeState.Derived, EntityAttributeType.Class, EntityAttributeType.None, null, null, 0)]
+		public DateTimeValue? CreatedOn => Created?.CreatedOn;
+
+		// TODO: Consider making part of the PersistEntity so Line number can be stored
+		/// <inheritdoc/>
+		[EntityAttribute(0, EntityAttributeState.Derived, EntityAttributeType.Class, EntityAttributeType.None, null, null, 0)]
+		public int RowNumber { get; set;}
+        //##
+        #endregion
+    }
 }

@@ -8,34 +8,17 @@ using Xbim.Ifc;
 
 namespace Xbim.IO.CobieExpress
 {
+    [Obsolete("ModelProviders are now created via the XbimServices.Current.ServiceProvider")]
     public class COBieModelProviderFactory : IModelProviderFactory
     {
-        IModelProviderFactory inner;
-
-        public COBieModelProviderFactory()
-        {
-            inner = new DefaultModelProviderFactory();
-        }
-
         public IModelProvider CreateProvider()
         {
-            var modelProvider = inner.CreateProvider();
-
-            // override the modelProvider to use our COBie EntityFactory
-            modelProvider.EntityFactoryResolver = (version) =>
-            {
-                if (version == Common.Step21.XbimSchemaVersion.Cobie2X4)
-                {
-                    return new EntityFactoryCobieExpress();
-                }
-                return null;
-            };
-            return modelProvider;
+            throw new NotImplementedException();
         }
 
         public void Use(Func<IModelProvider> providerFn)
         {
-            inner.Use(providerFn);
+            throw new NotImplementedException();
         }
     }
 }

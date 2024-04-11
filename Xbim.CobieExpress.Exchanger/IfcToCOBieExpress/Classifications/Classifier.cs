@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Xbim.CobieExpress.Exchanger.Classifications.Components;
 using Xbim.Common;
-
+using Xbim.Common.Configuration;
 
 namespace Xbim.CobieExpress.Exchanger.Classifications
 {
@@ -43,7 +43,8 @@ namespace Xbim.CobieExpress.Exchanger.Classifications
         /// </summary>
         private void AddClassificationsToAssets(CobieFacility facility)
         {
-            var dataReader = new ClassificationMappingReader(facility.Model.Logger);//DataReader Object which will create and populate the mappings table.
+            var classLogger = XbimServices.Current.CreateLogger<ClassificationMappingReader>();
+            var dataReader = new ClassificationMappingReader(classLogger);//DataReader Object which will create and populate the mappings table.
             //Get Each AssetType
             foreach (var type in facility.Model.Instances.OfType<CobieType>())
             {
