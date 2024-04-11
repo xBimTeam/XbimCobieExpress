@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.1" />
-    <PackageReference Include="Xbim.Ifc4" Version="6.0.438-develop" />
+    <PackageReference Include="Xbim.Ifc4" Version="6.0.445" />
   </ItemGroup>
 
   <ItemGroup>
