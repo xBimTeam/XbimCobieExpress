@@ -5,9 +5,11 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Xbim.CobieExpress.Exchanger.Classifications;
 using Xbim.CobieExpress.Exchanger.EqCompare;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
 using Xbim.Common;
+using Xbim.Common.Configuration;
 using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
@@ -189,7 +191,7 @@ namespace Xbim.CobieExpress.Exchanger
                 {
                     _xbimContact = Target.Instances.New<CobieContact>(c =>
                     {
-                        c.Email = "unknown@OpenBIM.org";
+                        c.Email = "toolkit@xbim.net";
                         c.GivenName = "XbimTeam";
                         c.Category = UnknownRole;
                         c.Created = GetCreatedInfo(c, _now);
@@ -202,7 +204,7 @@ namespace Xbim.CobieExpress.Exchanger
         }
 
         /// <summary>
-        /// 
+        /// Constructs a new COBieExpressHelper
         /// </summary>
         /// <param name="filter"></param>
         /// <param name="configurationFile"></param>
@@ -211,9 +213,9 @@ namespace Xbim.CobieExpress.Exchanger
         /// <param name="logger"></param>
         /// <param name="extId"></param>
         /// <param name="sysMode"></param>
-        public COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter reportProgress, ILogger logger, OutputFilters filter = null, string configurationFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types)
+        public COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter reportProgress, ILogger logger = null, OutputFilters filter = null, string configurationFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types)
         {
-            Logger = logger;
+            Logger = logger ?? XbimServices.Current.CreateLogger<COBieExpressHelper>();
             _categoryMapping = exchanger.GetOrCreateMappings<MappingIfcClassificationReferenceToCategory>();
             _externalObjectMapping = exchanger.GetOrCreateMappings<MappingStringToExternalObject>();
             _externalSystemMapping = exchanger.GetOrCreateMappings<MappingStringToExternalSystem>();
@@ -1096,7 +1098,12 @@ namespace Xbim.CobieExpress.Exchanger
                         classificationList = new List<IIfcClassificationReference>();
                         _classifiedObjects.Add(relatedObject, classificationList);
                     }
-                    classificationList.Add((IIfcClassificationReference)ifcRelAssociatesClassification.RelatingClassification);
+                    var classSelect = ifcRelAssociatesClassification.RelatingClassification;
+                    if (classSelect is IIfcClassificationReference classRef)
+                    {
+                        classificationList.Add(classRef);
+                    }
+                    // otherwise it's an IfcClassification system not a Reference - in IFC4 an object (e.g. Project) can be linked to a classification
                     ReportProgress.IncrementAndUpdate();
                 }
             }

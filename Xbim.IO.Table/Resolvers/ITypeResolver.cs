@@ -1,5 +1,5 @@
-﻿using System;
-using NPOI.SS.UserModel;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using System;
 using Xbim.Common.Metadata;
 
 namespace Xbim.IO.Table.Resolvers
@@ -17,15 +17,7 @@ namespace Xbim.IO.Table.Resolvers
         /// <returns></returns>
         bool CanResolve(Type type);
         bool CanResolve(ExpressType type);
-        /// <summary>
-        /// Implementation should return a non-abstract type which can be initialized and used for a deserialization
-        /// </summary>
-        /// <param name="type">Abstract type or interface to be resolved</param>
-        /// <param name="cell">Cell containing target value. This might be used if you need to chect format and type of input data</param>
-        /// <param name="cMapping">Mapping for the table and class</param>
-        /// <param name="pMapping">Mapping for the current cell and property</param>
-        /// <returns>non-abstract type</returns>
-        Type Resolve(Type type, ICell cell, ClassMapping cMapping, PropertyMapping pMapping);
+        Type Resolve(Type type, Cell cell, ClassMapping cMapping, PropertyMapping pMapping, SharedStringTable sharedStringTable);
         ExpressType Resolve(ExpressType abstractType, ReferenceContext context, ExpressMetaData metaData);
     }
 }

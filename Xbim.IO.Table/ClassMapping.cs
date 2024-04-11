@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Serialization;
@@ -11,6 +12,7 @@ namespace Xbim.IO.Table
     /// <summary>
     /// This class describes how to represent class as a table
     /// </summary>
+    [DebuggerDisplay("{Class} > {Type}")]
     public class ClassMapping
     {
 

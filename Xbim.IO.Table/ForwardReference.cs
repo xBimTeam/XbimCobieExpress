@@ -1,7 +1,7 @@
-﻿using System.Collections;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using NPOI.SS.UserModel;
 using Xbim.Common;
 
 namespace Xbim.IO.Table
@@ -25,7 +25,7 @@ namespace Xbim.IO.Table
         /// <summary>
         /// Row context of the referenced value
         /// </summary>
-        public IRow Row { get; private set; }
+        public IEnumerable<Cell> Row { get; private set; }
 
         /// <summary>
         /// Model of the entity
@@ -34,14 +34,13 @@ namespace Xbim.IO.Table
 
         private IPersistEntity Entity { get; set; }
 
-        private static readonly List<IPersistEntity> LastParents = new List<IPersistEntity>(); 
-
+        public List<IPersistEntity> LastParents { get => Store._forwardReferenceParentCache; }
 
         public ForwardReference(XbimInstanceHandle handle, ReferenceContext context, TableStore store)
         {
             Store = store;
             _handle = handle;
-            Row = context.CurrentRow;
+            Row = context.CurrentXMLRow;
             Context = context;
         }
 
@@ -49,7 +48,7 @@ namespace Xbim.IO.Table
         {
             Store = store;
             _handle = new XbimInstanceHandle(entity);
-            Row = context.CurrentRow;
+            Row = context.CurrentXMLRow;
             Context = context;
         }
 
@@ -71,6 +70,7 @@ namespace Xbim.IO.Table
             //resolve all other kinds of references
             else
                 ResolveMember();
+            Row = null;
         }
 
         private void ResolveMember()

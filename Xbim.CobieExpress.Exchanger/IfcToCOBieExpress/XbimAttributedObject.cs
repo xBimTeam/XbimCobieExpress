@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using Xbim.CobieExpress;
 using Xbim.Common;
+using Xbim.Common.Configuration;
 using Xbim.Ifc4.DateTimeResource;
 using Xbim.Ifc4.Interfaces;
 using Xbim.Ifc4.MeasureResource;
@@ -32,7 +33,7 @@ namespace Xbim.CobieExpress.Exchanger
         {
             IfcObject = obj;
             _targetModel = targetModel;
-            _log = _targetModel.Logger;
+            _log = XbimServices.Current.CreateLogger<XbimAttributedObject>();
         }
 
         /// <summary />

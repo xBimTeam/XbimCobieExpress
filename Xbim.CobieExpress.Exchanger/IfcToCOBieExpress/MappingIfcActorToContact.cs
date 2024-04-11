@@ -138,6 +138,8 @@ namespace Xbim.CobieExpress.Exchanger
                         target.StateRegion = postal.Region;                 
                     if (!string.IsNullOrWhiteSpace(postal.PostalCode))
                         target.PostalCode = postal.PostalCode;
+                    if (!string.IsNullOrWhiteSpace(postal.Country))
+                        target.Country = postal.Country;
                 }
             }
 

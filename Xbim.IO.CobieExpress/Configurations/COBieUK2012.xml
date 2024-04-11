@@ -3,6 +3,7 @@
               Name="COBie2.4 UK2012"
               ListSeparator=","
               PickTableName="PickLists"
+              RowNumber="RowNumber"
               >
   <StatusRepresentations>
     <StatusRepresentation Colour="#CCC" FontWeight="Bold" Border="true" Status="Header" />

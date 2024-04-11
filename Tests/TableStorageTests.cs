@@ -115,6 +115,10 @@ namespace Xbim.IO.Tests
             var cobieModel = CobieModel.ImportFromTable(@"2016-02-29-Dormitory-COBie.xlsx", out report);
             Assert.IsTrue(string.IsNullOrWhiteSpace(report), "Errors loading cobie xlsx file" );
 
+            foreach(var row in cobieModel.Instances.OfType<CobieReferencedObject>())
+            {
+                Assert.AreNotEqual(0, row.RowNumber,$"{row}");
+            }
         }
 
         [TestMethod]
@@ -256,6 +260,55 @@ namespace Xbim.IO.Tests
 
             //purge after test
             File.Delete(file);
+        }
+
+        [TestMethod]
+        [DeploymentItem("TestFiles/Documents.xlsx")]
+        public void CanLoadModelConsecutively()
+        {
+            // a static cache used by FowardReferences was causing cross-model referencing when the same model was run twice
+
+            ModelMapping mapping = GetCobieMapping();
+            var cobieModel = CobieModel.ImportFromTable(@"Documents.xlsx", out var report, mapping);
+            cobieModel.Tag = "Original";
+            cobieModel.Dispose();
+            cobieModel = CobieModel.ImportFromTable(@"Documents.xlsx", out report, mapping);
+            cobieModel.Tag = "New";
+
+            Assert.IsTrue(string.IsNullOrWhiteSpace(report), "Errors loading cobie xlsx file");
+
+            foreach (var entity in cobieModel.Instances)
+            {
+                Assert.AreEqual("New", entity.Model.Tag, $"{entity}");
+            }
+        }
+
+        [TestMethod]
+        [DeploymentItem("TestFiles/FunctionsCobie.xlsx")]
+        public void CanLoadModelWithFunctions()
+        {
+            // Test when cells use Excel functions rather than primitive/literal values
+
+            ModelMapping mapping = GetCobieMapping();
+            //mapping.ClassMappings.RemoveAll(m => m.Class != "Type" && m.Class != "Contact");
+            var cobieModel = CobieModel.ImportFromTable(@"FunctionsCobie.xlsx", out var report, mapping);
+            
+
+            var typeRow = cobieModel.Instances.OfType<CobieType>().Single();
+            Assert.IsTrue(string.IsNullOrWhiteSpace(report), "Errors loading cobie xlsx file: \r\n" + report);
+
+            Assert.AreEqual("JEG_CommunicationDevices_PublicAddressSpeakerCeilingRecessed_10899659", typeRow.Name);
+            Assert.AreEqual("andy.ward@xbim.net", typeRow.Created.CreatedBy.Email);
+            Assert.AreEqual("2019-09-04T17:20:40", typeRow.Created.CreatedOn.Value);
+
+            Assert.AreEqual("Pr_60_75 : Communications source products", typeRow.Categories.FirstOrDefault()?.Value);
+            Assert.AreEqual(24, typeRow.WarrantyDurationParts);
+            Assert.AreEqual(42.5, typeRow.ReplacementCost);
+            Assert.AreEqual(20, typeRow.ExpectedLife);
+            Assert.AreEqual(50, typeRow.NominalWidth);
+            Assert.AreEqual("Years", typeRow.DurationUnit.Value);
+          
+
         }
 
         private static ModelMapping GetCobieMapping()

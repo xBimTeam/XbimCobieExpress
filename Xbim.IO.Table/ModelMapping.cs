@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Xml.Serialization;
 using Xbim.Common.Metadata;
@@ -8,6 +9,8 @@ namespace Xbim.IO.Table
     /// <summary>
     /// This class describes how to map selected data from the model to table representation
     /// </summary>
+
+    [DebuggerDisplay("ModelMapping: {Name} ClassMappings = {ClassMappings}")]
     [XmlRoot("ModelMapping", Namespace = "http://www.openbim.org/mapping/table/1.0")]
     public class ModelMapping
     {
@@ -31,6 +34,12 @@ namespace Xbim.IO.Table
         /// </summary>
         [XmlAttribute(Namespace = "http://www.openbim.org/mapping/table/1.0")]
         public string PickTableName { get; set; }
+
+        /// <summary>
+        /// The name of a field to store the table row number in 
+        /// </summary>
+        [XmlAttribute(Namespace = "http://www.openbim.org/mapping/table/1.0")]
+        public string RowNumber { get; set; }
 
         /// <summary>
         /// Mappings for classes in the model
