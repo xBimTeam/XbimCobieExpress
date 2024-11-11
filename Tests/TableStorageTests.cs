@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FluentAssertions;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -106,10 +107,16 @@ namespace Xbim.IO.Tests
             var cobieModel = CobieModel.ImportFromTable(@"TestFiles\2016-02-29-Dormitory-COBie.xlsx", out report);
             Assert.True(string.IsNullOrWhiteSpace(report), "Errors loading cobie xlsx file" );
 
-            foreach(var row in cobieModel.Instances.OfType<CobieReferencedObject>())
-            {
-                Assert.NotEqual(0, row.RowNumber);
-            }
+            var rows = cobieModel.Instances.OfType<CobieReferencedObject>();
+            rows.Should().NotBeEmpty();
+            rows.Should().AllSatisfy(r => r.RowNumber.Should().NotBe(0, $"this record should not be orphaned {r}"));
+        }
+
+        [Fact]
+        public void CanLoadWithBlankColumnsAtEnd()
+        {
+            var cobieModel = CobieModel.ImportFromTable(@"TestFiles\BlankColumns.xlsx", out string report);
+            Assert.True(string.IsNullOrWhiteSpace(report), "Errors loading cobie xlsx file\n" + report);
         }
 
         [Fact]

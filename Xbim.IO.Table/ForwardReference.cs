@@ -107,14 +107,17 @@ namespace Xbim.IO.Table
             var parents = cached ? LastParents : Store.GetReferencedEntities(Context).ToList();
             if (!parents.Any())
             {
-                Store.Log.WriteLine("There is no parent of type {0} for type {1}", Context.SegmentType.ExpressName,
-                    Entity.ExpressType.ExpressName);
+                var rowNumber = GetRowNumber(Entity);
+                Store.Log.WriteLine("Found np parent {0} for row {2} of {1}s", Context.SegmentType.ExpressName,
+                    Entity.ExpressType.ExpressName, rowNumber);
                 return;
             }
             if (parents.Count > 1)
             {
-                Store.Log.WriteLine("There is more than one parent of type {0} for type {1}. All parents will be used.", Context.SegmentType.ExpressName,
-                    Entity.ExpressType.ExpressName);
+                // try to identify the row number to aid duplicate checking
+                var rowNumber = GetRowNumber(Entity);
+                Store.Log.WriteLine("The parent {0} of row {2} of {1}s is ambiguous. All {3} {0} parents will be referenced.", Context.SegmentType.ExpressName,
+                    Entity.ExpressType.ExpressName, rowNumber, parents.Count);
             }
 
             var destination =
@@ -125,7 +128,7 @@ namespace Xbim.IO.Table
                          c.ContextType == ReferenceContextType.EntityList));
             if (destination == null)
             {
-                Store.Log.WriteLine("There is destination path for type {1} in type {0}, table {2}.",
+                Store.Log.WriteLine("There is no destination path for type {1} in type {0}, table {2}.",
                     Context.SegmentType.ExpressName,
                     Entity.ExpressType.ExpressName, Context.CMapping.TableName);
                 return;
@@ -141,6 +144,18 @@ namespace Xbim.IO.Table
                 LastParents.Clear();
                 LastParents.AddRange(parents);
             }
+        }
+
+        private string GetRowNumber(IPersistEntity entity)
+        {
+            var excelRow = Context.SegmentType.Derives.FirstOrDefault(d => d.Name == Store.Mapping.RowNumber);
+            
+            if (excelRow != null)
+            {
+                return excelRow.PropertyInfo.GetValue(entity, null)?.ToString() ?? "Null";
+            }
+
+            return "Unknown";
         }
 
         private void AddToPath(ReferenceContext targetContext, IPersistEntity parent, IPersistEntity child)
