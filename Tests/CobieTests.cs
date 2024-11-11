@@ -2,18 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Xml;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Xbim.CobieExpress;
 using Xbim.Common;
 using Xbim.IO.CobieExpress;
-using Xbim.IO.Table;
-using Xbim.IO.Xml;
-using Xbim.IO.Xml.BsConf;
+using Xunit;
 
-namespace Xbim.MemoryModel.Tests
+namespace Xbim.CobieExpress.Tests
 {
-    [TestClass]
     public class CobieTests
     {
         //[TestMethod]
@@ -51,7 +45,7 @@ namespace Xbim.MemoryModel.Tests
 
         private static readonly IEntityFactory ef = new EntityFactoryCobieExpress();
 
-        [TestMethod]
+        [Fact]
         public void SerializeDeserialize()
         {
             var model = CreateTestModel();
@@ -71,13 +65,13 @@ namespace Xbim.MemoryModel.Tests
             var zipModel = new IO.Memory.MemoryModel(ef);
             zipModel.LoadZip(File.OpenRead("RandomModel.cobieZip"));
 
-            Assert.AreEqual(model.Instances.Count, stepModel.Instances.Count);
-            Assert.AreEqual(model.Instances.OfType<CobieAttribute>().Count(), stepModel.Instances.OfType<CobieAttribute>().Count());
-            Assert.AreEqual(model.Instances.OfType<CobieComponent>().Count(), stepModel.Instances.OfType<CobieComponent>().Count());
+            Assert.Equal(model.Instances.Count, stepModel.Instances.Count);
+            Assert.Equal(model.Instances.OfType<CobieAttribute>().Count(), stepModel.Instances.OfType<CobieAttribute>().Count());
+            Assert.Equal(model.Instances.OfType<CobieComponent>().Count(), stepModel.Instances.OfType<CobieComponent>().Count());
 
-            Assert.AreEqual(model.Instances.Count, zipModel.Instances.Count);
-            Assert.AreEqual(model.Instances.OfType<CobieAttribute>().Count(), zipModel.Instances.OfType<CobieAttribute>().Count());
-            Assert.AreEqual(model.Instances.OfType<CobieComponent>().Count(), zipModel.Instances.OfType<CobieComponent>().Count());
+            Assert.Equal(model.Instances.Count, zipModel.Instances.Count);
+            Assert.Equal(model.Instances.OfType<CobieAttribute>().Count(), zipModel.Instances.OfType<CobieAttribute>().Count());
+            Assert.Equal(model.Instances.OfType<CobieComponent>().Count(), zipModel.Instances.OfType<CobieComponent>().Count());
 
             //because save operation is deterministic both files should match
             var data1 = new StringWriter();
@@ -89,40 +83,40 @@ namespace Xbim.MemoryModel.Tests
             var str1 = data1.ToString();
             var str2 = data2.ToString();
 
-            Assert.AreEqual(str1.Length, str2.Length);
-            Assert.AreEqual(str1, str2);
+            Assert.Equal(str1.Length, str2.Length);
+            Assert.Equal(str1, str2);
         }
 
-        [TestMethod]
-        [Ignore("@martin1cerny, this is known to fail, but looks like a bug. Could you have a look?")]
+        
+        [Fact (Skip ="@martin1cerny, this is known to fail, but looks like a bug. Could you have a look?")]
         public void Deletion()
         {
             var model = CreateTestModel();
             using (model.BeginTransaction("Deletion"))
             {
                 var attribute = model.Instances.FirstOrDefault<CobieAttribute>();
-                Assert.IsNotNull(attribute);
+                Assert.NotNull(attribute);
                 var entityOfAttribute = model.Instances.FirstOrDefault<CobieAsset>(a => a.Attributes.Contains(attribute));
-                Assert.IsNotNull(entityOfAttribute);
+                Assert.NotNull(entityOfAttribute);
                 var space = model.Instances.FirstOrDefault<CobieSpace>();
                 var floor = space.Floor;
-                Assert.IsNotNull(floor);
+                Assert.NotNull(floor);
 
                 
                 //object should be removed from the collection
                 model.Delete(attribute);
-                Assert.IsFalse(entityOfAttribute.Attributes.Contains(attribute));
+                Assert.False(entityOfAttribute.Attributes.Contains(attribute));
 
                 //property should be nullified if reference is deleted
                 var floorEntityLabel = floor.EntityLabel;
                 model.Delete(floor);
                 var floorFromLabel = model.Instances[floorEntityLabel];
-                Assert.IsNull(floorFromLabel);
-                Assert.IsNull(space.Floor);
+                Assert.Null(floorFromLabel);
+                Assert.Null(space.Floor);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void AttributeIndexGetSet()
         {
             using (var model = new IO.Memory.MemoryModel(ef))
@@ -131,31 +125,31 @@ namespace Xbim.MemoryModel.Tests
                 {
                     var component = model.Instances.New<CobieComponent>(c => c.Name = "Boiler");
                     var bCode = component["BarCode"];
-                    Assert.IsNull(bCode);
+                    Assert.Null(bCode);
 
                     const int bc = 15789123;
                     component["BarCode"] = (IntegerValue)bc;
-                    Assert.IsNotNull(component.Attributes.FirstOrDefault(a => a.Name == "BarCode"));
+                    Assert.NotNull(component.Attributes.FirstOrDefault(a => a.Name == "BarCode"));
 
                     bCode = component["BarCode"];
-                    Assert.IsNotNull(bCode);
-                    Assert.IsTrue(bCode.Equals((IntegerValue)bc));
+                    Assert.NotNull(bCode);
+                    Assert.True(bCode.Equals((IntegerValue)bc));
 
                     component["BarCode"] = (IntegerValue)5;
-                    Assert.IsTrue(component["BarCode"].Equals((IntegerValue)5));
+                    Assert.True(component["BarCode"].Equals((IntegerValue)5));
 
                     const string myPropName = "My property set.My property";
                     var myProp = component[myPropName];
-                    Assert.IsNull(myProp);
+                    Assert.Null(myProp);
                     component[myPropName] = (StringValue) "Testing value";
                     var myAttr =
                         component.Attributes.FirstOrDefault(
                             a => a.Name == "My property" && a.PropertySet.Name == "My property set");
-                    Assert.IsNotNull(myAttr);
+                    Assert.NotNull(myAttr);
 
                     myProp = component[myPropName];
-                    Assert.IsNotNull(myProp);
-                    Assert.IsTrue(myProp.Equals((StringValue)"Testing value"));
+                    Assert.NotNull(myProp);
+                    Assert.True(myProp.Equals((StringValue)"Testing value"));
 
                     txn.Commit();
                 }
@@ -163,7 +157,7 @@ namespace Xbim.MemoryModel.Tests
 
         }
 
-        [TestMethod]
+        [Fact]
         public void EsentDatabaseTest()
         {
             const string file = "SampleForEsent.stp";
@@ -179,11 +173,11 @@ namespace Xbim.MemoryModel.Tests
                 db.CreateFrom(file, null, null, true);
 
                 var spaces = db.Instances.OfType<CobieSpace>();
-                Assert.IsTrue(spaces.Any());
+                Assert.True(spaces.Any());
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void ExcelRoundTrip()
         {
             using (var model = new CobieModel(CreateTestModel()))
@@ -191,8 +185,8 @@ namespace Xbim.MemoryModel.Tests
                 string excelExported = "exported.xlsx";
                 string report;
                 model.ExportToTable(excelExported, out report);
-                Assert.IsTrue(File.Exists(excelExported));
-                Assert.IsTrue(string.IsNullOrWhiteSpace(report));
+                Assert.True(File.Exists(excelExported));
+                Assert.True(string.IsNullOrWhiteSpace(report));
 
                 using (var imported = CobieModel.ImportFromTable(excelExported, out report))
                 {
@@ -215,11 +209,11 @@ namespace Xbim.MemoryModel.Tests
 
         private void CompareTrees(CobieFacility facilityLeft, CobieFacility facilityRight)
         {
-            Assert.AreEqual(facilityLeft.ExternalId, facilityRight.ExternalId);
-            Assert.AreEqual(facilityLeft.AltExternalId, facilityRight.AltExternalId);
-            Assert.AreEqual(facilityLeft.Name, facilityRight.Name);
+            Assert.Equal(facilityLeft.ExternalId, facilityRight.ExternalId);
+            Assert.Equal(facilityLeft.AltExternalId, facilityRight.AltExternalId);
+            Assert.Equal(facilityLeft.Name, facilityRight.Name);
 
-            Assert.AreEqual(facilityLeft.Floors.Count(), facilityRight.Floors.Count(), "Floor count mismatch");
+            Assert.Equal(facilityLeft.Floors.Count(), facilityRight.Floors.Count());
 
             if (facilityLeft.Floors.Count() == facilityRight.Floors.Count())
             {
@@ -235,11 +229,11 @@ namespace Xbim.MemoryModel.Tests
 
         private void CompareTrees(CobieFloor floorLeft, CobieFloor floorRight)
         {
-            Assert.AreEqual(floorLeft.ExternalId, floorRight.ExternalId);
-            Assert.AreEqual(floorLeft.AltExternalId, floorRight.AltExternalId);
-            Assert.AreEqual(floorLeft.Name, floorRight.Name);
+            Assert.Equal(floorLeft.ExternalId, floorRight.ExternalId);
+            Assert.Equal(floorLeft.AltExternalId, floorRight.AltExternalId);
+            Assert.Equal(floorLeft.Name, floorRight.Name);
 
-            Assert.AreEqual(floorLeft.Spaces.Count(), floorRight.Spaces.Count(), "Space count mismatch");
+            Assert.Equal(floorLeft.Spaces.Count(), floorRight.Spaces.Count());
 
             if (floorLeft.Spaces.Count() == floorRight.Spaces.Count())
             {
@@ -255,11 +249,11 @@ namespace Xbim.MemoryModel.Tests
 
         private void CompareTrees(CobieSpace spaceLeft, CobieSpace spaceRight)
         {
-            Assert.AreEqual(spaceLeft.ExternalId, spaceRight.ExternalId);
-            Assert.AreEqual(spaceLeft.AltExternalId, spaceRight.AltExternalId);
-            Assert.AreEqual(spaceLeft.Name, spaceRight.Name);
+            Assert.Equal(spaceLeft.ExternalId, spaceRight.ExternalId);
+            Assert.Equal(spaceLeft.AltExternalId, spaceRight.AltExternalId);
+            Assert.Equal(spaceLeft.Name, spaceRight.Name);
 
-            Assert.AreEqual(spaceLeft.Components.Count(), spaceRight.Components.Count(), "Component count missmatch");
+            Assert.Equal(spaceLeft.Components.Count(), spaceRight.Components.Count());
         }
 
         private IO.Memory.MemoryModel CreateTestModel()
