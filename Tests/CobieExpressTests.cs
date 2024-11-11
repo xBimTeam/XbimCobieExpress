@@ -2,28 +2,32 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Xbim.CobieExpress;
 using Xbim.CobieExpress.Exchanger;
 using Xbim.Common;
-using Xbim.Ifc;
 using Xbim.IO.CobieExpress;
-using Xbim.IO.Memory;
+using Xunit;
+using Xunit.Abstractions;
 
 
-namespace Tests
+namespace Xbim.CobieExpress.Tests
 {
-    [TestClass]
     public class CobieExpressTests
     {
-        [TestMethod]
-        [DeploymentItem("TestFiles")]
+        private readonly ITestOutputHelper console;
+
+        public CobieExpressTests(ITestOutputHelper output)
+        {
+            this.console = output;
+        }
+
+        [Fact]
         public void ConvertIfcToCoBieExpress()
         {
-            const string input = @"SampleHouse4.ifc";
+            const string input = @"TestFiles\SampleHouse4.ifc";
             var inputInfo = new FileInfo(input);
+            
 #pragma warning disable CS0618 // Type or member is obsolete  TODO: Needs correct non-obsolete signature in Essentials - defaults to ILogger
-            var ifc = MemoryModel.OpenReadStep21(input);
+            var ifc = IO.Memory.MemoryModel.OpenReadStep21(input);
 #pragma warning restore CS0618 // Type or member is obsolete
             var inputCount = ifc.Instances.Count;
 
@@ -41,8 +45,8 @@ namespace Tests
             cobie.SaveAsStep21(output);
 
             var outputInfo = new FileInfo(output);
-            Console.WriteLine("Time to convert {0:N}MB file ({2} entities): {1}ms", inputInfo.Length/1e6f, w.ElapsedMilliseconds, inputCount);
-            Console.WriteLine("Resulting size: {0:N}MB ({1} entities)", outputInfo.Length / 1e6f, cobie.Instances.Count);
+            console.WriteLine ("Time to convert {0:N}MB file ({2} entities): {1}ms", inputInfo.Length/1e6f, w.ElapsedMilliseconds, inputCount);
+            console.WriteLine("Resulting size: {0:N}MB ({1} entities)", outputInfo.Length / 1e6f, cobie.Instances.Count);
 
             using (var txn = cobie.BeginTransaction("Renaming"))
             {

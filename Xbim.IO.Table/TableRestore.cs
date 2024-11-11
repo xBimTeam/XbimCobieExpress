@@ -315,11 +315,9 @@ namespace Xbim.IO.Table
             var field = context.SegmentType.Derives.FirstOrDefault(d => d.Name == Mapping.RowNumber);
             if (field == null)
                 return;
-            if (rowNum == 0)
-            {
 
-            }
-            field.PropertyInfo.SetValue(entity, rowNum);  // 
+            // Apply Excel row number to entity
+            field.PropertyInfo.SetValue(entity, rowNum);
         }
 
         /// <summary>
@@ -787,7 +785,7 @@ namespace Xbim.IO.Table
             if (headerRow == null)
                 return;
 
-            var headings = headerRow.Elements<Cell>().Where(c => c.DataType.Value == CellValues.String || c.DataType.Value == CellValues.SharedString || !string.IsNullOrWhiteSpace(c.InnerText)).ToList();
+            var headings = headerRow.Elements<Cell>().Where(c => c.DataType?.Value == CellValues.String || c.DataType?.Value == CellValues.SharedString || !string.IsNullOrWhiteSpace(c.InnerText)).ToList();
             if (!headings.Any())
                 return;
             var mappings = mapping.PropertyMappings;
