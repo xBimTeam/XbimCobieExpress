@@ -1,18 +1,15 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
+﻿using System.IO;
 using Xbim.IO.Esent;
 using System;
 using Xbim.IO.CobieExpress;
-using Xbim.Ifc;
-using Xbim.Common.Configuration;
+using Xunit;
 
 namespace Xbim.CobieExpress.Tests
 {
-    [TestClass]
     public class EmptyModelTests
     {
 
-        [TestMethod]
+        [Fact]
         public void EsentInCobieModelTest()
         {
 
@@ -36,7 +33,7 @@ namespace Xbim.CobieExpress.Tests
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void EsentInOuterScope()
         {
             //creating esent model in outer scope for better control
@@ -58,12 +55,12 @@ namespace Xbim.CobieExpress.Tests
             using (var model = CobieModel.OpenEsent("test2.xbim"))
             {
                 var wall = model.Instances.FirstOrDefault<CobieComponent>();
-                Assert.IsNotNull(wall);
-                Assert.IsTrue(wall.Name == "Wall A");
+                Assert.NotNull(wall);
+                Assert.True(wall.Name == "Wall A");
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void MemoryToEsentCobieModelTest()
         {
 
@@ -134,8 +131,8 @@ namespace Xbim.CobieExpress.Tests
         private void AssertSimpleModel(CobieModel model)
         {
             var wall = model.Instances.FirstOrDefault<CobieComponent>();
-            Assert.IsNotNull(wall);
-            Assert.IsTrue(wall.Name == wallName);
+            Assert.NotNull(wall);
+            Assert.True(wall.Name == wallName);
         }
 
         private void AssertAllModelTypes()

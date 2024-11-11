@@ -5,7 +5,7 @@ using Xbim.CobieExpress.Exchanger.FilterHelper;
 using Xbim.Common.Configuration;
 using Xunit;
 
-namespace Tests
+namespace Xbim.CobieExpress.Tests
 {
     public class OutputFiltersTests
     {
