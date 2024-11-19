@@ -147,10 +147,9 @@ namespace Xbim.IO.Table
             stylesPart.Stylesheet.Fonts = fonts;
             stylesPart.Stylesheet.Borders = borders;
             stylesPart.Stylesheet.Fills = fills;
-            stylesPart.Stylesheet.CellStyleFormats = new CellStyleFormats();
+           
             stylesPart.Stylesheet.CellFormats.AppendChild(new CellFormat());
-            stylesPart.Stylesheet.CellStyleFormats.AppendChild(new CellFormat());
-
+            SetStyles(stylesPart.Stylesheet);
             //create spreadsheet representaion 
             Store(workbookPart);
 
@@ -820,11 +819,13 @@ namespace Xbim.IO.Table
             foreach (var mapping in classMapping.PropertyMappings)
             {
                 Cell cell = row.Elements<Cell>()?.FirstOrDefault(x => x.CellReference == mapping.Column + row.RowIndex.Value);
+
                 if (cell is null)
                 {
                     cell = new Cell() { CellReference = mapping.Column + (int)row.RowIndex.Value, DataType = CellValues.String };
                     cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(mapping.Header);
-                    cell.StyleIndex = GetStyleIndex(DataStatus.Header, workbook.WorkbookStylesPart.Stylesheet);
+
+                    cell.StyleIndex = GetOrSetStyleIndex(DataStatus.Header, workbook.WorkbookStylesPart.Stylesheet);
                     // Add the cell to the row
                     row.Append(cell);
                 }
@@ -850,11 +851,7 @@ namespace Xbim.IO.Table
                 if (mapping.Hidden)
                     column.Hidden = true;
 
-                var existStyle = column.Style;
-                if (
-                    existStyle != null
-                    ) continue;
-                column.Style = GetStyleIndex(mapping.Status, workbook.WorkbookStylesPart.Stylesheet);
+                column.Style = GetOrSetStyleIndex(mapping.Status, workbook.WorkbookStylesPart.Stylesheet);
             }
 
             //set up filter
@@ -889,7 +886,7 @@ namespace Xbim.IO.Table
 
         }
 
-        private uint GetStyleIndex(DataStatus status, Stylesheet stylesheet)
+        private uint GetOrSetStyleIndex(DataStatus status, Stylesheet stylesheet)
         {
 
             if (_styles == null)
@@ -897,24 +894,36 @@ namespace Xbim.IO.Table
 
             uint styleIndex;
             if (_styles.TryGetValue(status, out styleIndex))
-                return styleIndex;
+                return _styles[status];
 
             var representation = Mapping.StatusRepresentations.FirstOrDefault(r => r.Status == status);
 
 
             if (representation == null)
             {
-                _styles.Add(status, styleIndex);
+                _styles.Add(status, 0);
                 return styleIndex;
             }
-
-
+            if (stylesheet.Fills.Count == null)
+            {
+                stylesheet.Fills.Count = 0;
+            }
+            if (stylesheet.Fonts.Count == null)
+            {
+                stylesheet.Fonts.Count = 0;
+            }
+            if (stylesheet.CellFormats.Count == null)
+            {
+                stylesheet.CellFormats.Count = 1;
+            }
+            if (stylesheet.Borders.Count == null)
+            {
+                stylesheet.Borders.Count = 0;
+            }
             Fill fill = new Fill(new PatternFill() { PatternType = PatternValues.Solid, ForegroundColor = new ForegroundColor { Indexed = (uint)GetClosestColour(representation.Colour) } });
 
             if (representation.Border)
             {
-
-                var borders = stylesheet.Elements<Borders>().FirstOrDefault();
 
                 Border border = new Border(
                     new LeftBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColor.Black.Index } },
@@ -922,18 +931,18 @@ namespace Xbim.IO.Table
                     new TopBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColor.Black.Index } },
                     new BottomBorder() { Style = BorderStyleValues.Thin, Color = new Color() { Indexed = (uint)IndexedColor.Black.Index } });
 
-                if (stylesheet.Borders.Count == null)
-                {
-                    stylesheet.Borders.Count = 0;
-                }
+               
+                stylesheet.Borders.Count++;
+                stylesheet.Borders.Append(border);
+            }
+            else
+            {
+                Border border = new Border();
                 stylesheet.Borders.Count++;
                 stylesheet.Borders.Append(border);
             }
 
-            if (stylesheet.Fills.Count == null)
-            {
-                stylesheet.Fills.Count = 0;
-            }
+
             stylesheet.Fills.Count++;
             stylesheet.Fills.Append(fill);
 
@@ -956,38 +965,43 @@ namespace Xbim.IO.Table
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            if (stylesheet.Fonts.Count == null)
-            {
-                stylesheet.Fonts.Count = 0;
-            }
+           
             stylesheet.Fonts.Count++;
             stylesheet.Fonts.Append(font);
 
 
+            stylesheet.CellFormats.Count++;
 
             stylesheet.CellFormats.AppendChild(new CellFormat()
             {
-                FormatId = stylesheet.Borders.Count - 1,
-                FontId = stylesheet.Fonts.Count - 1,
-                BorderId = stylesheet.Borders.Count - 1,
-                FillId = stylesheet.Fills.Count - 1,
-                ApplyFill = true,
+                FormatId = (uint)(stylesheet.CellFormats.Count - 1),
+                FontId = (uint)(stylesheet.Fonts.Count - 1),
+                BorderId = (uint)(stylesheet.Borders.Count - 1),
+                FillId = (uint)(stylesheet.Fills.Count - 1),
                 ApplyBorder = true,
                 ApplyFont = true
             }
             );
-            if (stylesheet.CellFormats.Count == null)
-            {
-                stylesheet.CellFormats.Count = 1;
-            }
-            stylesheet.CellFormats.Count++;
+            
 
-            styleIndex = (uint)stylesheet.CellFormats.Count - 1;
+            styleIndex = (uint)(stylesheet.CellFormats.Count - 1);
             _styles.Add(status, styleIndex);
 
             return styleIndex;
         }
+        private void SetStyles( Stylesheet stylesheet)
+        {
 
+            if (_styles == null)
+                _styles = new Dictionary<DataStatus, uint>();
+
+            foreach (var representation in Mapping.StatusRepresentations)
+            {
+                GetOrSetStyleIndex(representation.Status, stylesheet);
+            }
+
+         
+        }
         //This operation takes very long time if applied at the end when spreadsheet is fully populated
         private static void AdjustAllColumns(WorksheetPart sheet, ClassMapping mapping, Row row)
         {
