@@ -620,7 +620,7 @@ namespace Xbim.CobieExpress.Exchanger
 
             var assemblyParts = new HashSet<IIfcObjectDefinition>(_model.Instances.OfType<IIfcRelAggregates>().SelectMany(a => a.RelatedObjects));
             var grouping = relDefinesByType.GroupBy(k => proxyTypesByKey[GetTypeObjectHashString(k.RelatingType)],
-                kv => kv.RelatedObjects).ToList();
+                kv => kv.RelatedObjects.Distinct(new EntityEqualityComparer<IIfcObject>())).ToList();
             ReportProgress.NextStage(grouping.Count, 19);
             foreach (var group in grouping)
             {
@@ -638,7 +638,14 @@ namespace Xbim.CobieExpress.Exchanger
             {
                 foreach (var ifcObject in typeObjectToObjects.Value.Where(t => !(t is IIfcFeatureElement) && !assemblyParts.Contains(t)))
                 {
-                    _objectToTypeObjectMap.Add(ifcObject, typeObjectToObjects.Key);
+                    try
+                    {
+                        _objectToTypeObjectMap.Add(ifcObject, typeObjectToObjects.Key);
+                    }
+                    catch (ArgumentException)
+                    {
+                        Logger.LogWarning("Entity {entityLabel} has the type already defined.", ifcObject.EntityLabel);
+                    }
                 }
                 ReportProgress.IncrementAndUpdate();
             }
@@ -699,6 +706,19 @@ namespace Xbim.CobieExpress.Exchanger
                     AssetAsignments[typeObject] = (IIfcAsset)assetRel.RelatingGroup;
                 }
                 ReportProgress.IncrementAndUpdate();
+            }
+        }
+
+        private class EntityEqualityComparer<T> : EqualityComparer<T> where T : IPersistEntity
+        {
+            public override bool Equals(T x, T y)
+            {
+                return x.Model == y.Model && x.EntityLabel == y.EntityLabel;
+            }
+
+            public override int GetHashCode(T obj)
+            {
+                return obj.EntityLabel.GetHashCode();
             }
         }
 

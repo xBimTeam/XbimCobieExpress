@@ -20,10 +20,10 @@ namespace Xbim.CobieExpress.Tests
             this.console = output;
         }
 
-        [Fact]
-        public void ConvertIfcToCoBieExpress()
+        [Theory]
+        [InlineData(@"TestFiles\SampleHouse4.ifc")]
+        public void ConvertIfcToCoBieExpress(string input)
         {
-            const string input = @"TestFiles\SampleHouse4.ifc";
             var inputInfo = new FileInfo(input);
             
 #pragma warning disable CS0618 // Type or member is obsolete  TODO: Needs correct non-obsolete signature in Essentials - defaults to ILogger
