@@ -305,18 +305,18 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// filter on IfcObjectDefinition objects
         /// </summary>
         /// <param name="obj"></param>
-        /// <param name="checkType"></param>
+        /// <param name="checkType">Flag indicating whether any <see cref="IIfcTypeObject"/> should be checked</param>
         /// <returns>bool true = exclude</returns>
         public bool ObjFilter(IIfcObjectDefinition obj, bool checkType = true)
         {
             bool exclude = false;
-            if (obj is IIfcProduct)
+            if (obj is IIfcProduct product)
             {
                 exclude = IfcProductFilter.ItemsFilter(obj);
                 //check the element is not defined by a type which is excluded, by default if no type, then no element included
                 if (!exclude && checkType)
                 {
-                    var objType = Enumerable.OfType<IIfcRelDefinesByType>(((IIfcProduct)obj).IsDefinedBy).Select(rdbt => rdbt.RelatingType).FirstOrDefault(); //assuming only one IfcRelDefinesByType
+                    IIfcTypeObject objType = product.IsTypedBy.FirstOrDefault()?.RelatingType;
                     if (objType != null) //if no type defined lets include it for now
                     {
                         exclude = IfcTypeObjectFilter.ItemsFilter(objType); 

@@ -151,13 +151,8 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             var result = ItemsToExclude.Contains(objString);
 
             if (result || !PreDefinedType.ContainsKey(objString)) return result;
-            var objPreDefinedProp = objType.GetProperty("PredefinedType");
 
-            if (objPreDefinedProp == null) return false;
-            var objPreDefValue = objPreDefinedProp.GetValue(obj,null);
-
-            if (objPreDefValue == null) return false;
-            var preDefType = objPreDefValue.ToString();
+            var preDefType = obj.GetPredefinedTypeValue();
             if (!string.IsNullOrEmpty(preDefType))
             {
                 result = !PreDefinedType[objString].Contains(preDefType.ToUpper());
