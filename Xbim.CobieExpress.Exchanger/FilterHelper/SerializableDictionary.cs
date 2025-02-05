@@ -4,11 +4,12 @@ using System.Collections.Generic;
 using System.Xml;
 using System.Xml.Schema;
 using System.Xml.Serialization;
+using Xbim.CobieExpress.Abstractions;
 
 namespace Xbim.CobieExpress.Exchanger.FilterHelper
 {
     [XmlRoot("dictionary")]
-    public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, IXmlSerializable
+    public class SerializableDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializableXmlDictionary<TKey, TValue>
     {
         #region IXmlSerializable Members
         public XmlSchema GetSchema()

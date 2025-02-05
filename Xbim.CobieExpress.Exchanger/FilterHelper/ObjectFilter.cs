@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using Xbim.CobieExpress.Abstractions;
+using Xbim.Common;
 using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger.FilterHelper
@@ -9,18 +11,18 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
     /// <summary>
     /// Filter on object type names, used to filter Type and Component COBie Sheets
     /// </summary>
-    public class ObjectFilter
+    public class ObjectFilter : IObjectFilter
     {
         #region Properties
         /// <summary>
         /// Keyed list with true or false values, true to include. false to exclude
         /// </summary>
-        public SerializableDictionary<string, bool> Items { get; set; }
+        public ISerializableXmlDictionary<string, bool> Items { get; set; }
 
         /// <summary>
         /// keyed by IfcElement to element property PredefinedType to include list
         /// </summary>
-        public SerializableDictionary<string, string[]> PreDefinedType { get; set; }
+        public ISerializableXmlDictionary<string, string[]> PreDefinedType { get; set; }
 
         /// <summary>
         /// Items to filter out
@@ -28,14 +30,15 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         private List<string> _itemsToExclude;
         private List<string> ItemsToExclude
         {
-            get {
+            get
+            {
                 return _itemsToExclude ??
                        (_itemsToExclude = Items.Where(e => e.Value == false).Select(e => e.Key).ToList());
             }
         }
 
         #endregion
-         
+
         #region Constructors
 
         public ObjectFilter()
@@ -45,11 +48,19 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             _itemsToExclude = null;
         }
 
+
         /// <summary>
         /// Set Property Filters constructor via ConfigurationSection from configuration file
         /// </summary>
         /// <param name="section">ConfigurationSection from configuration file</param>
-        public ObjectFilter(ConfigurationSection section) : this()
+        public ObjectFilter(ConfigurationSection section) : this(section, null) { }
+
+        /// <summary>
+        /// Set Property Filters constructor via ConfigurationSection from configuration file
+        /// </summary>
+        /// <param name="section">ConfigurationSection from configuration file</param>
+        /// <param name="pdtSection"></param>
+        public ObjectFilter(ConfigurationSection section, ConfigurationSection pdtSection = null) : this()
         {
             if (section == null) return;
 
@@ -58,6 +69,15 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 if (string.IsNullOrEmpty(keyVal.Key)) continue;
                 var include = string.Compare(keyVal.Value, "YES", StringComparison.OrdinalIgnoreCase) == 0;
                 Items.Add(keyVal.Key.ToUpper(), include);
+            }
+
+            if (pdtSection == null) return;
+            foreach (KeyValueConfigurationElement keyVal in ((AppSettingsSection)pdtSection).Settings)
+            {
+                if (string.IsNullOrEmpty(keyVal.Value)) continue;
+
+                var values = keyVal.Value.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList().ConvertAll(s => s.ToUpper()).ToArray();
+                PreDefinedType.Add(keyVal.Key.ToUpper(), values);
             }
         }
 
@@ -104,14 +124,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="section"></param>
         public void FillPreDefinedTypes(ConfigurationSection section)
         {
-            if (section == null) return;
-            foreach (KeyValueConfigurationElement keyVal in ((AppSettingsSection)section).Settings)
-            {
-                if (string.IsNullOrEmpty(keyVal.Value)) continue;
-
-                var values = keyVal.Value.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList().ConvertAll(s => s.ToUpper()).ToArray();
-                PreDefinedType.Add(keyVal.Key.ToUpper(), values);
-            }
+            
         }
 
         /// <summary>
@@ -123,7 +136,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         public bool ItemsFilter(string testStr, string preDefinedType = null)
         {
             if (ItemsToExclude.Count == 0) return false; //nothing to test against
-            
+
             testStr = testStr.ToUpper();
             //check for predefinedtype enum value passed as string
             if ((preDefinedType == null) || !PreDefinedType.ContainsKey(testStr))
@@ -139,11 +152,13 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <summary>
         /// Test for IfcObjectDefinition exists in IfcToExclude type lists
         /// </summary>
-        /// <param name="obj">IfcObjectDefinition object</param>
+        /// <param name="entity">IfcObjectDefinition object</param>
         /// <returns>bool, true = exclude</returns>
-        public bool ItemsFilter(IIfcObjectDefinition obj)
+        public bool ItemsFilter(IPersistEntity entity)
         {
-            if (ItemsToExclude.Count == 0) 
+            if(!(entity is IIfcObjectDefinition obj)) return false;
+
+            if (ItemsToExclude.Count == 0)
                 return false; //nothing to test against
 
             var objType = obj.GetType();
@@ -164,7 +179,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Merge together ObjectFilter
         /// </summary>
         /// <param name="mergeFilter">ObjectFilter to merge</param>
-        public void MergeInc(ObjectFilter mergeFilter)
+        public void MergeInc(IObjectFilter mergeFilter)
         {
             _itemsToExclude = null; //reset exclude
 
@@ -175,7 +190,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             {
                 Items[pair.Key] = pair.Value;
             }
-            
+
             var mergeData = PreDefinedType.Concat(mergeFilter.PreDefinedType).GroupBy(v => v.Key).ToDictionary(k => k.Key, v => v.SelectMany(x => x.Value).Distinct().ToArray());
             //rebuild PreDefinedType from merge linq statement
             PreDefinedType.Clear();
@@ -190,7 +205,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Copy values from passed ObjectFilter
         /// </summary>
         /// <param name="copyFilter">ObjectFilter to copy</param>
-        public void Copy(ObjectFilter copyFilter)
+        public void Copy(IObjectFilter copyFilter)
         {
             _itemsToExclude = null; //reset exclude
 

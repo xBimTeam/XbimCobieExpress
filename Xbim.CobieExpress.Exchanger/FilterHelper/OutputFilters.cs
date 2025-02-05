@@ -6,12 +6,14 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
+using Xbim.CobieExpress.Abstractions;
+using Xbim.Common;
 using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger.FilterHelper
 {
 
-    public class OutputFilters
+    public class OutputFilters : IOutputFilters
     {
         private readonly ILogger _log;
 
@@ -20,69 +22,71 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <summary>
         /// Flip results of true/false 
         /// </summary>
-        [XmlIgnore][JsonIgnore]
+        [XmlIgnore]
+        [JsonIgnore]
         public bool FlipResult { get; set; }
 
         /// <summary>
         /// Roles set on this filter
         /// </summary>
-        public RoleFilter AppliedRoles  { get; set; }
+        public RoleFilter AppliedRoles { get; set; }
         /// <summary>
         /// IfcProduct Exclude filters
         /// </summary>
-        public ObjectFilter IfcProductFilter { get;  set; }
+        public IObjectFilter IfcProductFilter { get; set; }
         /// <summary>
         /// IfcTypeObject Exclude filters
         /// </summary>
-        public ObjectFilter IfcTypeObjectFilter { get;  set; }
+        public IObjectFilter IfcTypeObjectFilter { get; set; }
         /// <summary>
         /// IfcAssembly Exclude filters
         /// </summary>
-        public ObjectFilter IfcAssemblyFilter { get; set; }
+        public IObjectFilter IfcAssemblyFilter { get; set; }
 
         /// <summary>
         /// Zone attribute filters
         /// </summary>
-        public PropertyFilter ZoneFilter { get;  set; }
+        public IPropertyFilter ZoneFilter { get; set; }
         /// <summary>
         /// Type attribute filters
         /// </summary>
-        public PropertyFilter TypeFilter { get;  set; }
+        public IPropertyFilter TypeFilter { get; set; }
         /// <summary>
         /// Space attribute filters
         /// </summary>
-        public PropertyFilter SpaceFilter { get;  set; }
+        public IPropertyFilter SpaceFilter { get; set; }
         /// <summary>
         /// Floor attribute filters
         /// </summary>
-        public PropertyFilter FloorFilter { get;  set; }
+        public IPropertyFilter FloorFilter { get; set; }
         /// <summary>
         /// Facility attribute filters
         /// </summary>
-        public PropertyFilter FacilityFilter { get;  set; }
+        public IPropertyFilter FacilityFilter { get; set; }
         /// <summary>
         /// Spare attribute filters
         /// </summary>
-        public PropertyFilter SpareFilter { get;  set; }
+        public IPropertyFilter SpareFilter { get; set; }
         /// <summary>
         /// Component attribute filters
         /// </summary>
-        public PropertyFilter ComponentFilter { get;  set; }
+        public IPropertyFilter ComponentFilter { get; set; }
         /// <summary>
         /// Common attribute filters
         /// </summary>
-        public PropertyFilter CommonFilter { get;  set; }
+        public IPropertyFilter CommonFilter { get; set; }
 
         /// <summary>
-        /// Temp storage for role OutPutFilters
+        /// Temp storage for role OutputFilters
         /// </summary>
-        [XmlIgnore][JsonIgnore]
-        private Dictionary<RoleFilter, OutputFilters> RolesFilterHolder { get; set; }
+        [XmlIgnore]
+        [JsonIgnore]
+        private IDictionary<RoleFilter, IOutputFilters> RolesFilterHolder { get; set; }
 
         /// <summary>
         /// Nothing set in RolesFilterHolder
         /// </summary>
-        public bool DefaultsNotSet 
+        public bool DefaultsNotSet
         {
             get
             {
@@ -118,7 +122,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             CommonFilter = new PropertyFilter();
 
             //role storage
-            RolesFilterHolder = new Dictionary<RoleFilter, OutputFilters>();
+            RolesFilterHolder = new Dictionary<RoleFilter, IOutputFilters>();
         }
 
         /// <summary>
@@ -137,7 +141,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         public OutputFilters(ILogger logger, RoleFilter roleFlags) : this(logger)
         {
             AppliedRoles = roleFlags;
-            if(roleFlags.HasMultipleFlags())
+            if (roleFlags.HasMultipleFlags())
             {
                 throw new InvalidOperationException("Cannot construct with multiple roles. Use OutputFilters.Merge to add additional roles");
             }
@@ -145,12 +149,12 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         }
 
         /// <summary>
-        /// Constructor to apply roles, and pass custom role OutPutFilters
+        /// Constructor to apply roles, and pass custom role OutputFilters
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="roles">RoleFilter flags on roles to filter on</param>
-        /// <param name="rolesFilter">Dictionary of role to OutPutFilters</param>
-        public OutputFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, OutputFilters> rolesFilter = null) : this(logger)
+        /// <param name="rolesFilter">Dictionary of role to OutputFilters</param>
+        public OutputFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, IOutputFilters> rolesFilter = null) : this(logger)
         {
             ApplyRoleFilters(roles, false, rolesFilter);
         }
@@ -165,9 +169,9 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <returns>bool</returns>
         public bool IsEmpty()
         {
-            return IfcProductFilter.IsEmpty() && IfcTypeObjectFilter.IsEmpty() && IfcAssemblyFilter.IsEmpty() && 
-            ZoneFilter.IsEmpty() && TypeFilter.IsEmpty() && SpaceFilter.IsEmpty() && 
-            FloorFilter.IsEmpty() && FacilityFilter.IsEmpty() && SpareFilter.IsEmpty() && 
+            return IfcProductFilter.IsEmpty() && IfcTypeObjectFilter.IsEmpty() && IfcAssemblyFilter.IsEmpty() &&
+            ZoneFilter.IsEmpty() && TypeFilter.IsEmpty() && SpaceFilter.IsEmpty() &&
+            FloorFilter.IsEmpty() && FacilityFilter.IsEmpty() && SpareFilter.IsEmpty() &&
             ComponentFilter.IsEmpty() && CommonFilter.IsEmpty();
         }
 
@@ -186,11 +190,10 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             if (import == ImportSet.All || import == ImportSet.IfcFilters)
             {
                 IfcProductFilter = new ObjectFilter(config.GetSection("IfcElementInclusion"));
-                IfcTypeObjectFilter = new ObjectFilter(config.GetSection("IfcTypeInclusion"));
-                IfcTypeObjectFilter.FillPreDefinedTypes(config.GetSection("IfcPreDefinedTypeFilter"));
+                IfcTypeObjectFilter = new ObjectFilter(config.GetSection("IfcTypeInclusion"), config.GetSection("IfcPreDefinedTypeFilter"));
                 IfcAssemblyFilter = new ObjectFilter(config.GetSection("IfcAssemblyInclusion"));
             }
-            
+
             //Property name filters
             if (import == ImportSet.All || import == ImportSet.PropertyFilters)
             {
@@ -215,11 +218,11 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <returns></returns>
         private Configuration GetConfig(string fileOrResourceName)
         {
-            
+
             if (!File.Exists(fileOrResourceName))
             {
                 // try to save resource to temporary file
-                
+
                 var asss = global::System.Reflection.Assembly.GetExecutingAssembly();
                 using (var input = asss.GetManifestResourceStream(fileOrResourceName))
                 {
@@ -234,7 +237,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                         input.CopyTo(output);
                     }
                     fileOrResourceName = tmpFile;
-                }               
+                }
             }
 
             Configuration config;
@@ -253,10 +256,10 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         }
 
         /// <summary>
-        /// Copy the OutPutFilters
+        /// Copy the OutputFilters
         /// </summary>
-        /// <param name="copyFilter">OutPutFilters to copy </param>
-        public void Copy(OutputFilters copyFilter)
+        /// <param name="copyFilter">OutputFilters to copy </param>
+        public void Copy(IOutputFilters copyFilter)
         {
             AppliedRoles = copyFilter.AppliedRoles;
 
@@ -276,7 +279,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
 
 
         /// <summary>
-        /// Clear OutPutFilters
+        /// Clear OutputFilters
         /// </summary>
         public void Clear()
         {
@@ -304,11 +307,12 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <summary>
         /// filter on IfcObjectDefinition objects
         /// </summary>
-        /// <param name="obj"></param>
+        /// <param name="entity"></param>
         /// <param name="checkType">Flag indicating whether any <see cref="IIfcTypeObject"/> should be checked</param>
         /// <returns>bool true = exclude</returns>
-        public bool ObjFilter(IIfcObjectDefinition obj, bool checkType = true)
+        public bool ObjFilter(IPersistEntity entity, bool checkType = true)
         {
+            if (!(entity is IIfcObjectDefinition obj)) return false;
             bool exclude = false;
             if (obj is IIfcProduct product)
             {
@@ -319,10 +323,10 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                     IIfcTypeObject objType = product.IsTypedBy.FirstOrDefault()?.RelatingType;
                     if (objType != null) //if no type defined lets include it for now
                     {
-                        exclude = IfcTypeObjectFilter.ItemsFilter(objType); 
+                        exclude = IfcTypeObjectFilter.ItemsFilter(objType);
                     }
                 }
-                
+
             }
             else if (obj is IIfcTypeProduct)
             {
@@ -334,10 +338,10 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
 
         #region Merge Roles
         /// <summary>
-        /// Merge OutPutFilters
+        /// Merge OutputFilters
         /// </summary>
-        /// <param name="mergeFilter">OutPutFilters</param>
-        public void Merge(OutputFilters mergeFilter)
+        /// <param name="mergeFilter">OutputFilters</param>
+        public void Merge(IOutputFilters mergeFilter)
         {
             IfcProductFilter.MergeInc(mergeFilter.IfcProductFilter);
             IfcTypeObjectFilter.MergeInc(mergeFilter.IfcTypeObjectFilter);
@@ -359,8 +363,8 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="roles">MergeRoles, Flag enum with one or more roles</param>
         /// <param name="append">true = add, false = overwrite existing </param>
-        /// <param name="rolesFilter">Dictionary of roles to OutPutFilters to use for merge, overwrites current assigned dictionary</param>
-        public void ApplyRoleFilters(RoleFilter roles, bool append = false, Dictionary<RoleFilter, OutputFilters> rolesFilter = null)
+        /// <param name="rolesFilter">Dictionary of roles to OutputFilters to use for merge, overwrites current assigned dictionary</param>
+        public void ApplyRoleFilters(RoleFilter roles, bool append = false, IDictionary<RoleFilter, IOutputFilters> rolesFilter = null)
         {
             if (rolesFilter != null)
             {
@@ -368,11 +372,11 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             }
 
             var init = append && !IsEmpty();
-            
-            OutputFilters mergeFilter = null;
+
+            IOutputFilters mergeFilter = null;
             foreach (RoleFilter role in Enum.GetValues(typeof(RoleFilter)))
             {
-                if (!roles.HasFlag(role)) 
+                if (!roles.HasFlag(role))
                     continue;
                 if (RolesFilterHolder.ContainsKey(role))
                 {
@@ -403,10 +407,10 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             Merge(defaultPropFilters);
 
             //save the applied roles at end as this.Copy(mergeFilter) would set to first role in RoleFilter
-            AppliedRoles = roles; 
+            AppliedRoles = roles;
         }
 
-        
+
 
         /// <summary>
         /// Set filters for Federated Model, referenced models
@@ -454,7 +458,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="dir">DirectoryInfo</param>
         public void FillRolesFilterHolderFromDir(DirectoryInfo dir)
         {
-            if (!dir.Exists) 
+            if (!dir.Exists)
                 return;
             foreach (RoleFilter role in Enum.GetValues(typeof(RoleFilter)))
             {
@@ -481,7 +485,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="dir">DirectoryInfo</param>
         public void WriteXmlRolesFilterHolderToDir(DirectoryInfo dir)
         {
-            if (!dir.Exists) 
+            if (!dir.Exists)
                 return;
             foreach (var item in RolesFilterHolder)
             {
@@ -495,8 +499,8 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Get stored role filter
         /// </summary>
         /// <param name="role">RoleFilter with single flag(role) set</param>
-        /// <returns>OutPutFilters</returns>
-        public OutputFilters GetRoleFilter(RoleFilter role)
+        /// <returns>OutputFilters</returns>
+        public IOutputFilters GetRoleFilter(RoleFilter role)
         {
             if ((role & (role - 1)) != 0)
             {
@@ -521,7 +525,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="role">RoleFilter with single flag(role) set</param>
         /// <param name="log"></param>
-        /// <returns>OutPutFilters</returns>
+        /// <returns>OutputFilters</returns>
         public static OutputFilters GetDefaults(RoleFilter role, ILogger log)
         {
             if ((role & (role - 1)) != 0)
@@ -529,8 +533,8 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 throw new ArgumentException("More than one flag set on role");
             }
             var filterFile = role.ToResourceName();
-            return !string.IsNullOrEmpty(filterFile) 
-                ? new OutputFilters(filterFile, log, role) 
+            return !string.IsNullOrEmpty(filterFile)
+                ? new OutputFilters(filterFile, log, role)
                 : null;
         }
 
@@ -540,7 +544,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Add filter for a role, used by ApplyRoleFilters for none default filters
         /// </summary>
         /// <param name="role">RoleFilter, single flag RoleFilter</param>
-        /// <param name="filter">OutPutFilters to assign to role</param>
+        /// <param name="filter">OutputFilters to assign to role</param>
         /// <remarks>Does not apply filter to this object, used ApplyRoleFilters after setting the RolesFilterHolder items </remarks>
         public void AddRoleFilterHolderItem(RoleFilter role, OutputFilters filter)
         {
@@ -570,17 +574,17 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         }
 
         /// <summary>
-        /// Create a OutPutFilters object from a XML file
+        /// Create a OutputFilters object from a XML file
         /// </summary>
         /// <param name="filename">FileInfo</param>
-        /// <returns>OutPutFilters</returns>
+        /// <returns>OutputFilters</returns>
         public static OutputFilters DeserializeXml(FileInfo filename)
         {
             OutputFilters result;
             var writer = new XmlSerializer(typeof(OutputFilters));
             using (var file = new StreamReader(filename.FullName))
             {
-                result =  (OutputFilters)writer.Deserialize(file);
+                result = (OutputFilters)writer.Deserialize(file);
             }
             return result;
         }
@@ -589,7 +593,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Save object as JSON 
         /// </summary>
         /// <param name="filename">FileInfo</param>
-        public void SerializeJson (FileInfo filename)
+        public void SerializeJson(FileInfo filename)
         {
             var writer = new JsonSerializer();
             using (var file = new StreamWriter(filename.FullName))
@@ -599,10 +603,10 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         }
 
         /// <summary>
-        /// Create a OutPutFilters object from a JSON file
+        /// Create a OutputFilters object from a JSON file
         /// </summary>
         /// <param name="filename">FileInfo</param>
-        /// <returns>OutPutFilters</returns>
+        /// <returns>OutputFilters</returns>
         public static OutputFilters DeserializeJson(FileInfo filename)
         {
             OutputFilters result;
@@ -628,7 +632,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         {
         }
 
-        public OutPutFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, OutputFilters> rolesFilter = null) : base(logger, roles, rolesFilter)
+        public OutPutFilters(ILogger logger, RoleFilter roles, Dictionary<RoleFilter, IOutputFilters> rolesFilter = null) : base(logger, roles, rolesFilter)
         {
         }
 

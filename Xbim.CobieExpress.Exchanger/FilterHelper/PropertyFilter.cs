@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
+using Xbim.CobieExpress.Abstractions;
 
 namespace Xbim.CobieExpress.Exchanger.FilterHelper
 {
     /// <summary>
     /// Filter on property set names, and properties names held within the set, used to extract attribute sheets
     /// </summary>
-    public class PropertyFilter
+    public class PropertyFilter : IPropertyFilter
     {
 
         /// <summary>
@@ -38,7 +39,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             Contain = new List<string>();
             PropertySetsEqualTo = new List<string>();
         }
-        
+
         /// <summary>
         /// Set Property Filters constructor
         /// </summary>
@@ -48,7 +49,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// <param name="pSetEqualTo">';' delimited string for Property Set names to equal</param>
         public PropertyFilter(string equalTo, string startWith, string contain, string pSetEqualTo) : this()
         {
-             //Property names to exclude 
+            //Property names to exclude 
             if (!string.IsNullOrEmpty(equalTo))
             {
                 EqualTo.AddRange(equalTo.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).ToList().ConvertAll(s => s.ToUpper()));
@@ -120,7 +121,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         /// <param name="testStr">String to test</param>
         /// <returns>bool</returns>
-        public bool NameFilter (string testStr)
+        public bool NameFilter(string testStr)
         {
             testStr = testStr.ToUpper();
             return EqualTo.Any(a => testStr.Equals(a)) ||
@@ -144,7 +145,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Merge PropertyFilter
         /// </summary>
         /// <param name="mergeFilter">PropertyFilter to merge</param>
-        public void Merge (PropertyFilter mergeFilter)
+        public void Merge(IPropertyFilter mergeFilter)
         {
             EqualTo = EqualTo.Concat(mergeFilter.EqualTo.Where(s => !EqualTo.Contains(s))).ToList();
             StartWith = StartWith.Concat(mergeFilter.StartWith.Where(s => !StartWith.Contains(s))).ToList();
@@ -157,7 +158,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// Copy values from passed PropertyFilter
         /// </summary>
         /// <param name="copyFilter">PropertyFilter to copy</param>
-        public void Copy(PropertyFilter copyFilter)
+        public void Copy(IPropertyFilter copyFilter)
         {
             EqualTo.Clear();
             EqualTo = EqualTo.Concat(copyFilter.EqualTo).ToList();
@@ -167,7 +168,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             Contain = Contain.Concat(copyFilter.Contain).ToList();
             PropertySetsEqualTo.Clear();
             PropertySetsEqualTo = PropertySetsEqualTo.Concat(copyFilter.PropertySetsEqualTo).ToList();
-            
+
         }
 
         /// <summary>
