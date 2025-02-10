@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -98,83 +99,91 @@ namespace Xbim.IO.Table
             Mapping.Init(MetaData);
         }
 
-        public void Store(string path, Stream template = null)
+        /// <summary>
+        /// Stores the <see cref="Model"/> in an Excel file according to the <see cref="Mapping"/> table.
+        /// </summary>
+        /// <param name="path">The filename of the Excel file to create.</param>
+        /// <param name="template">A readonly stream containing an Excel template document which will be cloned to used as the base content</param>
+        /// <param name="recalculate">Indicates if excel formulas should be refreshed on completion</param>
+        /// <remarks>Note: any existing sheets in any template with the same name as target sheets will be replaced</remarks>
+        /// <exception cref="ArgumentNullException"></exception>
+        public void Store(string path, Stream template = null, bool recalculate = true)
         {
             if (path == null)
                 throw new ArgumentNullException("path");
             var ext = Path.GetExtension(path).ToLower().Trim('.');
             if (ext != "xls" && ext != "xlsx")
             {
-                //XLSX is Spreadsheet XML representation which is capable of storing more data
+                // XLSX is Spreadsheet XML representation which is capable of storing more data
                 path += ".xlsx";
                 ext = "xlsx";
             }
             using (var file = File.Create(path))
             {
                 var type = ext == "xlsx" ? ExcelTypeEnum.XLSX : ExcelTypeEnum.XLS;
-                Store(file, type, template: template);
+                Store(file, type, template, recalculate);
                 file.Close();
             }
 
 
         }
 
-        public Stream Store(Stream stream, ExcelTypeEnum type, Stream template = null, bool recalculate = false)
+        /// <summary>
+        /// Stores the <see cref="Model"/> in Excel format to the provided stream based on the <see cref="Mapping"/> table.
+        /// </summary>
+        /// <param name="stream">A writeable stream to output the Excel file to</param>
+        /// <param name="type">The Excel file format version</param>
+        /// <param name="template">An options stream containing a template to clone as the base document</param>
+        /// <param name="recalculate">Indicates if excel formulas should be refreshed on completion</param>
+        /// <returns>A <paramref name="stream"/></returns>
+        /// <remarks>Note: any existing sheets in any template with the same name as target sheets will be replaced</remarks>
+        public Stream Store(Stream stream, ExcelTypeEnum type, Stream template = null, bool recalculate = true)
         {
             Log = new StringWriter();
             SpreadsheetDocument spreadsheetDocument;
             if (template != null)
             {
-                spreadsheetDocument = SpreadsheetDocument.Open(template, true);
+                var templateFile = SpreadsheetDocument.Open(template, false);
+                spreadsheetDocument = templateFile.Clone(stream, true);
+                templateFile.Dispose();
             }
             else
             {
                 spreadsheetDocument = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook);
-                WorkbookPart wbPart = spreadsheetDocument.AddWorkbookPart();
-                wbPart.Workbook = new Workbook();
             }
 
-            var workbookPart = spreadsheetDocument.WorkbookPart;
+            WorkbookPart workbookPart = spreadsheetDocument.GetOrCreatePart(d => d.AddWorkbookPart(), d => d.WorkbookPart);
+            
+            if (workbookPart.Workbook == null)
+            {
+                workbookPart.Workbook = new Workbook();
+            }
 
             //Add a WorkbookStylesPart to the WorkbookPart
-            WorkbookStylesPart stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
-            stylesPart.Stylesheet = new Stylesheet();
-            CellFormats cellFormats = new CellFormats();
-            Fonts fonts = new Fonts();
-            Borders borders = new Borders();
-            Fills fills = new Fills();
-            stylesPart.Stylesheet.CellFormats = cellFormats;
-            stylesPart.Stylesheet.Fonts = fonts;
-            stylesPart.Stylesheet.Borders = borders;
-            stylesPart.Stylesheet.Fills = fills;
-           
-            stylesPart.Stylesheet.CellFormats.AppendChild(new CellFormat());
-            SetStyles(stylesPart.Stylesheet);
-            //create spreadsheet representaion 
-            Store(workbookPart);
+            WorkbookStylesPart stylesPart = workbookPart.GetOrCreatePart(w => w.AddNewPart<WorkbookStylesPart>());
 
-            if (template != null)
+            var styleSheet = stylesPart.Stylesheet ??= new Stylesheet();
+
+            styleSheet.Fonts ??= new Fonts();
+            styleSheet.Fills ??= new Fills();
+            styleSheet.Borders ??= new Borders();
+            styleSheet.CellFormats ??= new CellFormats();
+
+            styleSheet.CellFormats.GetOrCreate(w => w.AppendChild(new CellFormat()));
+
+            SetStyles(styleSheet);
+            //create spreadsheet representation 
+            SerialiseModel(workbookPart);
+
+            if(recalculate && workbookPart.Workbook.CalculationProperties != null)
             {
-                var newSpreadsheetDocument = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook);
-                // Add a WorkbookPart to the document
-                WorkbookPart newworkbookPart = newSpreadsheetDocument.AddWorkbookPart();
-                newworkbookPart.Workbook = new Workbook();
-
-                // Copy the content of the template document to the output document
-                WorkbookPart templateWorkbookPart = spreadsheetDocument.WorkbookPart;
-
-                foreach (var part in templateWorkbookPart.Parts)
-                {
-                    newworkbookPart.AddPart(part.OpenXmlPart, part.RelationshipId);
-                }
-                workbookPart = newworkbookPart;
+                workbookPart.Workbook.CalculationProperties.ForceFullCalculation = true;
+                workbookPart.Workbook.CalculationProperties.FullCalculationOnLoad = true;
             }
-            if (!recalculate || template == null)
-            {
-                spreadsheetDocument.Save();
-                spreadsheetDocument.Dispose();
-                return stream;
-            }
+
+            // Validate
+            //var validator = new OpenXmlValidator();
+            //var err = validator.Validate(spreadsheetDocument);
 
 
             //write to output stream
@@ -183,18 +192,24 @@ namespace Xbim.IO.Table
             return stream;
         }
 
-        public void Store(WorkbookPart workbook)
+
+        /// <summary>
+        /// Serialise the model content in the supplied <see cref="WorkbookPart"/>
+        /// </summary>
+        /// <param name="workbookPart"></param>
+        private void SerialiseModel(WorkbookPart workbookPart)
         {
             //if there are no mappings do nothing
             if (Mapping.ClassMappings == null || !Mapping.ClassMappings.Any()) return;
 
             _rowNumCache = new Dictionary<string, uint>();
-            _styles = new Dictionary<DataStatus, uint>();
+            if(_styles == null) 
+                _styles = new Dictionary<DataStatus, uint>();
 
             //creates tables in defined order if they are not there yet
-            SetUpTables(workbook, Mapping);
+            SetUpTables(workbookPart, Mapping);
 
-            //start from root definitions
+            //start from root definitions - those that don't have a parent.
             var rootClasses = Mapping.ClassMappings.Where(m => m.IsRoot);
             foreach (var classMapping in rootClasses)
             {
@@ -209,11 +224,12 @@ namespace Xbim.IO.Table
                 }
 
                 //root definitions will always have parent == null
-                Store(workbook, classMapping, eType, null);
+                SerialiseSheet(workbookPart, classMapping, eType, null);
             }
         }
 
-        private void Store(WorkbookPart workbook, ClassMapping mapping, ExpressType expType, IPersistEntity parent)
+
+        private void SerialiseSheet(WorkbookPart workbookPart, ClassMapping mapping, ExpressType expType, IPersistEntity parent)
         {
             if (mapping.PropertyMappings == null)
                 return;
@@ -225,25 +241,27 @@ namespace Xbim.IO.Table
             if (!context.Leaves.Any()) return;
 
             var tableName = mapping.TableName ?? "Default";
-            Sheet sheet = workbook.Workbook.Sheets.FirstOrDefault(x => (x as Sheet).Name == tableName) as Sheet;
-            var workSheetPart = (WorksheetPart)workbook.GetPartById(sheet.Id);
-            foreach (var leaveContext in context.Leaves)
+            Sheet sheet = workbookPart.Workbook.Sheets.FirstOrDefault(x => (x as Sheet).Name == tableName) as Sheet;
+            var workSheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id);
+            foreach (var leafContext in context.Leaves)
             {
-                Store(workSheetPart, leaveContext.Entity, mapping, expType, leaveContext, tableName);
+                SerialiseEntity(workSheetPart, leafContext.Entity, mapping, expType, leafContext, tableName);
 
                 foreach (var childrenMapping in mapping.ChildrenMappings)
                 {
-                    Store(workbook, childrenMapping, childrenMapping.Type, leaveContext.Entity);
+                    // E.g. tables with a parentPath such as COBie Attributes/Documents/Impacts, which are not 'Roots'
+                    SerialiseSheet(workbookPart, childrenMapping, childrenMapping.Type, leafContext.Entity);
                 }
+                //workSheetPart.Worksheet.Save();
             }
         }
 
-        private void Store(WorksheetPart sheet, IPersistEntity entity, ClassMapping mapping, ExpressType expType, EntityContext context, string sheetName)
+        private void SerialiseEntity(WorksheetPart worksheetPart, IPersistEntity entity, ClassMapping mapping, ExpressType expType, EntityContext context, string sheetName)
         {
             Row multiRow = new Row() { RowIndex = 0 };
             List<string> multiValues = null;
             PropertyMapping multiMapping = null;
-            var row = GetRow(sheet, sheetName);
+            var row = GetRow(worksheetPart, sheetName);
 
             //fix on "Special Case" Assembly Row to Entity mapping
             if ((context?.RootEntity != null) && (expType?.ExpressNameUpper == "TYPEORCOMPONENT")) //without CobieExpress reference and not using reflection this is as good as it gets to ID Assembly
@@ -277,7 +295,7 @@ namespace Xbim.IO.Table
 
                     //get only first value and store it
                     var first = values.First();
-                    Store(row, first, propertyMapping, sheet);
+                    SerialiseCell(row, first, propertyMapping, worksheetPart);
 
                     //set the rest for the processing as multiValue
                     values.Remove(first);
@@ -286,15 +304,15 @@ namespace Xbim.IO.Table
                 }
                 else
                 {
-                    Store(row, value, propertyMapping, sheet);
+                    SerialiseCell(row, value, propertyMapping, worksheetPart);
                 }
 
             }
 
             //adjust width of the columns after the first and the eight row 
             //adjusting fully populated workbook takes ages. This should be almost all right
-            if (row.RowIndex == 1 || row.RowIndex == 8)
-                AdjustAllColumns(sheet, mapping, row);
+            if (row.RowIndex <= 2 || row.RowIndex == 8)
+                AdjustAllColumns(worksheetPart, mapping, row);
 
             //it is not a multi row so return
             if ((multiRow != null && multiRow.RowIndex <= 1) || multiValues == null || !multiValues.Any())
@@ -307,10 +325,10 @@ namespace Xbim.IO.Table
                 var copy = CopyRow(multiRow, rowNum);
                 if (copy != null)
                 {
-                    SheetData sheetData = sheet.Worksheet.Elements<SheetData>().First();
+                    SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
                     sheetData.Append(copy);
                 }
-                Store(copy, value, multiMapping, sheet);
+                SerialiseCell(copy, value, multiMapping, worksheetPart);
                 RowNoToEntityLabelLookup[sheetName].Add(rowNum, entity.EntityLabel);
             }
         }
@@ -356,7 +374,7 @@ namespace Xbim.IO.Table
             return single.Length > CellTextLimit && mapping.MultiRow == MultiRow.IfNecessary;
         }
 
-        private void Store(Row row, object value, PropertyMapping mapping, WorksheetPart worksheetPart)
+        private void SerialiseCell(Row row, object value, PropertyMapping mapping, WorksheetPart worksheetPart)
         {
             if (value == null)
                 return;
@@ -375,7 +393,8 @@ namespace Xbim.IO.Table
             c.Max == GetColumnIndexFromString(mapping.Column)
             );
 
-            cell.StyleIndex = column.Style;
+            if (column != null)
+                cell.StyleIndex = column.Style;
 
             //simplify any eventual enumeration into a single string
             var enumVal = value as IEnumerable;
@@ -728,9 +747,9 @@ namespace Xbim.IO.Table
             return entity.ToString();
         }
 
-        private Row GetRow(WorksheetPart sheet, string sheetName)
+        private Row GetRow(WorksheetPart worksheetPart, string sheetName)
         {
-            SheetData sheetData = sheet.Worksheet.Elements<SheetData>().First();
+            SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
             //get the next row in rowNumber is less than 1 or use the argument to get or create new row
             uint lastIndex;
             if (!_rowNumCache.TryGetValue(sheetName, out lastIndex))
@@ -739,7 +758,7 @@ namespace Xbim.IO.Table
                 _rowNumCache.Add(sheetName, 0);
             }
             var row = lastIndex < 1
-                ? GetNextEmptyRow(sheet)
+                ? GetNextEmptyRow(worksheetPart)
                 : sheetData.Elements<Row>().FirstOrDefault(x => x.RowIndex == lastIndex + 1);
 
             if (row is null)
@@ -769,9 +788,9 @@ namespace Xbim.IO.Table
             return lastIndex;
         }
 
-        private static Row GetNextEmptyRow(WorksheetPart sheet)
+        private static Row GetNextEmptyRow(WorksheetPart worksheetPart)
         {
-            SheetData sheetData = sheet.Worksheet.Elements<SheetData>().First();
+            SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
             int lastIndex = 0;
             foreach (Row row in sheetData.Elements<Row>())
             {
@@ -779,7 +798,7 @@ namespace Xbim.IO.Table
                 var isEmpty = true;
                 foreach (Cell cell in row)
                 {
-                    if (string.IsNullOrEmpty(cell.CellValue.InnerText)) continue;
+                    if (string.IsNullOrEmpty(cell.CellValue?.InnerText)) continue;
 
                     isEmpty = false;
                     break;
@@ -790,8 +809,6 @@ namespace Xbim.IO.Table
             sheetData.Append(newRow);
             return newRow;
         }
-
-
 
         private void SetUpHeader(WorksheetPart sheetPart, WorkbookPart workbook, ClassMapping classMapping)
         {
@@ -966,22 +983,33 @@ namespace Xbim.IO.Table
                     throw new ArgumentOutOfRangeException();
             }
            
+            
             stylesheet.Fonts.Count++;
             stylesheet.Fonts.Append(font);
 
 
             stylesheet.CellFormats.Count++;
-
-            stylesheet.CellFormats.AppendChild(new CellFormat()
+            var cellFormat = new CellFormat()
             {
                 FormatId = (uint)(stylesheet.CellFormats.Count - 1),
                 FontId = (uint)(stylesheet.Fonts.Count - 1),
                 BorderId = (uint)(stylesheet.Borders.Count - 1),
                 FillId = (uint)(stylesheet.Fills.Count - 1),
                 ApplyBorder = true,
-                ApplyFont = true
+                ApplyFont = true,
+            };
+
+            if (status == DataStatus.Header)
+            {
+                // Rotate headers 90% and horizonally centre
+                var alignment = new Alignment()
+                {
+                    TextRotation = 90,
+                    Horizontal = new EnumValue<HorizontalAlignmentValues>(HorizontalAlignmentValues.Center)
+                };
+                cellFormat.Alignment = alignment;
             }
-            );
+            stylesheet.CellFormats.AppendChild(cellFormat);
             
 
             styleIndex = (uint)(stylesheet.CellFormats.Count - 1);
@@ -989,6 +1017,11 @@ namespace Xbim.IO.Table
 
             return styleIndex;
         }
+
+        /// <summary>
+        /// Register global styles defined by the <see cref="StatusRepresentation"/>s
+        /// </summary>
+        /// <param name="stylesheet"></param>
         private void SetStyles( Stylesheet stylesheet)
         {
 
@@ -1010,7 +1043,10 @@ namespace Xbim.IO.Table
             foreach (var col in mapping.PropertyMappings)
             {
                 var cellWidth = GetCellWidth(cells.FirstOrDefault(x => x.CellReference == col.Column + row.RowIndex.Value));
-                columns.Elements<Column>().FirstOrDefault(x => x.Min == col.ColumnIndex && x.Max == col.ColumnIndex).Width = cellWidth < 15 ? 15 : cellWidth;
+
+                var column = columns.Elements<Column>().FirstOrDefault(x => x.Min == col.ColumnIndex && x.Max == col.ColumnIndex);
+                if(column != null)
+                    column.Width = cellWidth < 15 ? 15 : cellWidth;
 
             }
         }
@@ -1042,43 +1078,91 @@ namespace Xbim.IO.Table
             }
             return cellWidth;
         }
+
+
+        /// <summary>
+        /// Set up sheets for the 
+        /// </summary>
+        /// <param name="workbook"></param>
+        /// <param name="mapping"></param>
         private void SetUpTables(WorkbookPart workbook, ModelMapping mapping)
         {
             if (mapping == null || mapping.ClassMappings == null || !mapping.ClassMappings.Any())
                 return;
 
+            Sheets sheets = workbook.Workbook.GetOrCreate(w => w.AppendChild(new Sheets()));
+
+            uint count = (uint)sheets.Count() + 1;
+
+            // Provide default unique sheet name for edgecase when tableName not supplied
             var i = 0;
             foreach (var classMapping in Mapping.ClassMappings.Where(classMapping => string.IsNullOrWhiteSpace(classMapping.TableName)))
             {
-                classMapping.TableName = string.Format("NoName({0})", i++);
+                classMapping.TableName = string.Format("{0}({1})", classMapping.Class ?? "NoName", i++);
             }
 
-            var names = Mapping.ClassMappings.OrderBy(m => m.TableOrder).Select(m => m.TableName).Distinct();
-            uint count = 1;
-            Sheets sheets = workbook.Workbook.AppendChild(new Sheets());
+            var tableNames = Mapping.ClassMappings.OrderBy(m => m.TableOrder).Select(m => m.TableName).Distinct();
 
-            foreach (var name in names)
+            foreach (var name in tableNames)
             {
+                OpenXmlElement insertBefore = null;
+                var classMapping = Mapping.ClassMappings.First(m => m.TableName == name);
+
+                // Check for existing sheets (e.g. in Template)
+                Sheet sheet = sheets.ChildElements.OfType<Sheet>().FirstOrDefault(s => s.Name == name);
+                if (sheet != null)
+                {
+                    // Remove any matching sheet so we have a 'clean start'. 
+                    // Saves us from having to map mis-placed columns, clear existing data etc.
+                    insertBefore = sheet.NextSibling();
+                    var sheetPart = (WorksheetPart)(workbook.GetPartById(sheet.Id));
+                    workbook.DeletePart(sheetPart);
+                    sheet.Remove();
+                }
+
                 WorksheetPart worksheetPart = workbook.AddNewPart<WorksheetPart>();
                 worksheetPart.Worksheet = new Worksheet(new SheetData());
 
                 // Add a new sheet to the workbook
-                Sheet sheet = new Sheet() { Id = workbook.GetIdOfPart(worksheetPart), SheetId = count, Name = name };
-                sheets.Append(sheet);
+                sheet = new Sheet() { Id = workbook.GetIdOfPart(worksheetPart), SheetId = count, Name = name };
 
+                // Appends - or insert where insertBefore is not null (when updating a Template)
+                sheets.InsertBefore(sheet, insertBefore);
+                
                 RowNoToEntityLabelLookup.Add(sheet.Name, new Dictionary<uint, int>());
-                var classMapping = Mapping.ClassMappings.First(m => m.TableName == name);
+                
                 SetUpHeader(worksheetPart, workbook, classMapping);
                 count++;
-                ////set colour of the tab: Not implemented exception in NPOI
-                //if (classMapping.TableStatus == DataStatus.None) continue;
-                //var style = GetStyle(classMapping.TableStatus, workbook);
-                //sheet.TabColorIndex = style.FillForegroundColor;
+
+                // Initialise Tab colour
+                var sheetProps = worksheetPart.Worksheet.SheetProperties;
+                if(worksheetPart.Worksheet.SheetProperties == null)
+                    worksheetPart.Worksheet.SheetProperties = new SheetProperties();
+                if (worksheetPart.Worksheet.SheetProperties.TabColor == null)
+                    worksheetPart.Worksheet.SheetProperties.TabColor = new TabColor();
+
+                if (classMapping.TableStatus == DataStatus.None) continue;
+
+                var representation = mapping.StatusRepresentations.FirstOrDefault(r => r.Status == classMapping.TableStatus);
+                if (representation != null)
+                {
+                    SetTabColour(worksheetPart, representation.Colour);
+                }
+
             }
+        }
+
+        private static void SetTabColour(WorksheetPart worksheetPart, string colour)
+        {
+            var colorArgb =colour.Replace("#", "");
+            if (colorArgb.Length < 6)
+                colorArgb = $"FF{colorArgb}";   // Add Alpha
+            worksheetPart.Worksheet.SheetProperties.TabColor.Rgb = HexBinaryValue.FromString(colorArgb);
         }
 
         private static readonly Dictionary<string, short> ColourCodeCache = new Dictionary<string, short>();
         private static readonly List<IndexedColor> IndexedColoursList = new List<IndexedColor>();
+
 
         private static short GetClosestColour(string rgb)
         {

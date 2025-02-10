@@ -51,6 +51,7 @@ namespace Xbim.CobieExpress.Tests
         [InlineData(false, RoleFilter.Unknown, typeof(IfcWall))]
         [InlineData(true, RoleFilter.Architectural, typeof(IfcDoor))]
         [InlineData(true, RoleFilter.Unknown, typeof(IfcDoor))]
+        [InlineData(false, RoleFilter.Mechanical, typeof(IfcDoor))]
         [InlineData(false, RoleFilter.Architectural, typeof(IfcEnergyConversionDevice))]
         [InlineData(true, RoleFilter.Unknown, typeof(IfcEnergyConversionDevice))]
 

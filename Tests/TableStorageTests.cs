@@ -101,6 +101,25 @@ namespace Xbim.IO.Tests
         }
 
         [Fact]
+        public void StoreAsXLSWithTemplate()
+        {
+            var model = CobieModel.OpenStep21Zip(@"TestFiles\SampleHouse4.cobieZip");
+
+            ModelMapping cobie24Mapping = GetCobieMapping();
+            cobie24Mapping.Init(model.Metadata);
+
+            using var templateStream = File.Open(@"TestFiles\COBie_UK_UniclassTemplate.xlsx", FileMode.Open, FileAccess.ReadWrite);
+
+            var w = new Stopwatch();
+            w.Start();
+            var storage = new TableStore(model, cobie24Mapping);
+            storage.Store("SampleHouseTemplated.xlsx", templateStream);//
+            w.Stop();
+            //Debug.WriteLine(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds);
+            Trace.WriteLine(string.Format(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds));
+        }
+
+        [Fact]
         public void LoadFromXLSX()
         {
             string report;
