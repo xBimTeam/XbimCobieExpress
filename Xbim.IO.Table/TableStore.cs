@@ -169,7 +169,7 @@ namespace Xbim.IO.Table
             styleSheet.Borders ??= new Borders();
             styleSheet.CellFormats ??= new CellFormats();
 
-            styleSheet.CellFormats.GetOrCreate(w => w.AppendChild(new CellFormat()));
+            styleSheet.CellFormats.GetOrCreate(w => w.AppendChild(new CellFormat(){ FillId = 0, BorderId=0, FontId = 0, FormatId = 0 }));
 
             SetStyles(styleSheet);
             //create spreadsheet representation 
@@ -182,8 +182,8 @@ namespace Xbim.IO.Table
             }
 
             // Validate
-            //var validator = new OpenXmlValidator();
-            //var err = validator.Validate(spreadsheetDocument);
+            var validator = new OpenXmlValidator();
+            var err = validator.Validate(spreadsheetDocument);
 
 
             //write to output stream
@@ -238,19 +238,27 @@ namespace Xbim.IO.Table
                 new EntityContext(Model.Instances.OfType(expType.Name.ToUpper(), false).ToList()) { LeavesDepth = 1 } :
                 mapping.GetContext(parent);
 
-            if (!context.Leaves.Any()) return;
-
             var tableName = mapping.TableName ?? "Default";
             Sheet sheet = workbookPart.Workbook.Sheets.FirstOrDefault(x => (x as Sheet).Name == tableName) as Sheet;
             var workSheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id);
+            if (!context.Leaves.Any())
+            {
+                if(parent is null)
+                { 
+                    // On root tabs, set Tab colour to 'empty' when no rows
+                    SetTabColour(workSheetPart, "#AAAAAA");
+                }
+                return;
+            }
+
             foreach (var leafContext in context.Leaves)
             {
                 SerialiseEntity(workSheetPart, leafContext.Entity, mapping, expType, leafContext, tableName);
 
-                foreach (var childrenMapping in mapping.ChildrenMappings)
+                foreach (var childMapping in mapping.ChildrenMappings)
                 {
                     // E.g. tables with a parentPath such as COBie Attributes/Documents/Impacts, which are not 'Roots'
-                    SerialiseSheet(workbookPart, childrenMapping, childrenMapping.Type, leafContext.Entity);
+                    SerialiseSheet(workbookPart, childMapping, childMapping.Type, leafContext.Entity);
                 }
                 //workSheetPart.Worksheet.Save();
             }
@@ -843,6 +851,7 @@ namespace Xbim.IO.Table
                     cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(mapping.Header);
 
                     cell.StyleIndex = GetOrSetStyleIndex(DataStatus.Header, workbook.WorkbookStylesPart.Stylesheet);
+                    
                     // Add the cell to the row
                     row.Append(cell);
                 }
@@ -869,6 +878,16 @@ namespace Xbim.IO.Table
                     column.Hidden = true;
 
                 column.Style = GetOrSetStyleIndex(mapping.Status, workbook.WorkbookStylesPart.Stylesheet);
+                if (mapping.IsKey == true && mapping.Status == DataStatus.Required)
+                {
+                    // Create named ranges for Keys columns
+                    DefineNamedKeys(workbook, classMapping, mapping);
+                }
+                if (!string.IsNullOrEmpty(mapping.LookUp))//(mapping.Status == DataStatus.Reference || mapping.Status == DataStatus.PickValue)
+                {
+                    // Create Data validations back to keyed columns
+                    AddDataValidation(sheetPart, mapping);
+                }
             }
 
             //set up filter
@@ -879,11 +898,78 @@ namespace Xbim.IO.Table
             // Check if AutoFilter exists, if not, add it
             if (sheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault() == null)
             {
-                sheetPart.Worksheet.Append(autoFilter);
+                sheetPart.Worksheet.InsertAfter(autoFilter, sheetData);
             }
             else // If AutoFilter exists, update its reference
             {
                 sheetPart.Worksheet.Elements<AutoFilter>().First().Reference = autoFilter.Reference;
+            }
+        }
+
+        private static void DefineNamedKeys(WorkbookPart workbook, ClassMapping classMapping, PropertyMapping mapping)
+        {
+            DefinedNames definedNames = workbook.Workbook.GetOrCreate(c => new DefinedNames());
+            var keyName = $"{classMapping.TableName}.{mapping.Header}";
+            var appliesToRange = $"${mapping.Column}:${mapping.Column}";
+            var targetRange = $"{classMapping.TableName}!{appliesToRange}"; // Range to cover
+            var definition = definedNames.ChildElements.OfType<DefinedName>().FirstOrDefault(c => c.Name == keyName);
+            if (definition != null)
+            {
+                definition.Text = targetRange;
+            }
+            else
+            {
+                definition = new DefinedName()
+                {
+                    Name = keyName,
+                    Text = targetRange
+                };
+                definedNames.Append(definition);
+            }
+        }
+
+        private void AddDataValidation(WorksheetPart sheetPart, PropertyMapping mapping)
+        {
+            var lookup = mapping.LookUp;
+            var lookupParts = lookup.Split('.');
+            if (lookupParts.Length > 1)
+            {
+                var tableName = lookupParts[0];
+                var columnName = lookupParts[1];
+
+                var workSheet = sheetPart.Worksheet;
+                DataValidations dataValidations = workSheet.GetOrCreate(
+                        c => c.InsertBefore(new DataValidations(), workSheet.Descendants<PageMargins>().FirstOrDefault()),
+                        getter => getter.GetFirstChild<DataValidations>());
+                var appliesToRange = $"{mapping.Column}:{mapping.Column}";
+
+                DataValidation dataValidation = new DataValidation()
+                {
+                    Type = DataValidationValues.List,
+                    AllowBlank = true,
+                    SequenceOfReferences = new ListValue<StringValue>() { InnerText = appliesToRange }
+                };
+                Formula1 formula = new Formula1();
+
+                if (string.Compare(tableName, Mapping.PickTableName, StringComparison.InvariantCultureIgnoreCase) == 0)
+                {
+                    // Picklists are usually just the 'Picklists.<namedRange>'
+                    // TODO: Check for missing namedRanges and fall back to column header?
+                    formula.Text = $"={columnName}";
+                }
+                else
+                {
+                    var targetSheet = Mapping.ClassMappings.FirstOrDefault(c => c.TableName == tableName);
+                    if (targetSheet == null)
+                    {
+                        // Typically dynamic Sheet names e.g. [SheetName].Name
+                        return;
+                    }
+                    formula.Text = $"={mapping.LookUp}";
+                    
+                }
+                dataValidation.Append(formula);
+                dataValidations.Append(dataValidation);
             }
         }
 
@@ -918,8 +1004,10 @@ namespace Xbim.IO.Table
 
             if (representation == null)
             {
-                _styles.Add(status, 0);
-                return styleIndex;
+                //_styles.Add(status, 0);
+                //return styleIndex;
+
+                representation = new StatusRepresentation() { Colour = "#FF0000", Status = status };
             }
             if (stylesheet.Fills.Count == null)
             {
@@ -937,7 +1025,16 @@ namespace Xbim.IO.Table
             {
                 stylesheet.Borders.Count = 0;
             }
-            Fill fill = new Fill(new PatternFill() { PatternType = PatternValues.Solid, ForegroundColor = new ForegroundColor { Indexed = (uint)GetClosestColour(representation.Colour) } });
+            
+            // Fonts
+            // Fills
+            // Borders
+            // Cell Formats
+            Fill fill = new Fill(new PatternFill() 
+            { 
+                PatternType = PatternValues.Solid, 
+                ForegroundColor = new ForegroundColor { Indexed = (uint)GetClosestColour(representation.Colour) } 
+            });
 
             if (representation.Border)
             {
@@ -991,12 +1088,13 @@ namespace Xbim.IO.Table
             stylesheet.CellFormats.Count++;
             var cellFormat = new CellFormat()
             {
-                FormatId = (uint)(stylesheet.CellFormats.Count - 1),
-                FontId = (uint)(stylesheet.Fonts.Count - 1),
+               // FormatId = (uint)(stylesheet.CellFormats.Count - 1),
+                FontId = (uint)(stylesheet.Fonts.Count -1),
                 BorderId = (uint)(stylesheet.Borders.Count - 1),
                 FillId = (uint)(stylesheet.Fills.Count - 1),
                 ApplyBorder = true,
                 ApplyFont = true,
+                
             };
 
             if (status == DataStatus.Header)
@@ -1010,7 +1108,6 @@ namespace Xbim.IO.Table
                 cellFormat.Alignment = alignment;
             }
             stylesheet.CellFormats.AppendChild(cellFormat);
-            
 
             styleIndex = (uint)(stylesheet.CellFormats.Count - 1);
             _styles.Add(status, styleIndex);
@@ -1028,6 +1125,10 @@ namespace Xbim.IO.Table
             if (_styles == null)
                 _styles = new Dictionary<DataStatus, uint>();
 
+            // Add two dummy styles which we never use. OpenXml styles are a dumpster fire of magic indexex
+            // and this just bumps the indexes on a bit so we can start 
+            GetOrSetStyleIndex(DataStatus.None, stylesheet);
+            GetOrSetStyleIndex(DataStatus.UserDefined, stylesheet);
             foreach (var representation in Mapping.StatusRepresentations)
             {
                 GetOrSetStyleIndex(representation.Status, stylesheet);
@@ -1128,35 +1229,43 @@ namespace Xbim.IO.Table
 
                 // Appends - or insert where insertBefore is not null (when updating a Template)
                 sheets.InsertBefore(sheet, insertBefore);
-                
+
                 RowNoToEntityLabelLookup.Add(sheet.Name, new Dictionary<uint, int>());
-                
+
                 SetUpHeader(worksheetPart, workbook, classMapping);
                 count++;
 
-                // Initialise Tab colour
-                var sheetProps = worksheetPart.Worksheet.SheetProperties;
-                if(worksheetPart.Worksheet.SheetProperties == null)
-                    worksheetPart.Worksheet.SheetProperties = new SheetProperties();
-                if (worksheetPart.Worksheet.SheetProperties.TabColor == null)
-                    worksheetPart.Worksheet.SheetProperties.TabColor = new TabColor();
+                // Initialise Tab colour for status/ May get updated later
+                InitialiseTabColour(mapping, classMapping, worksheetPart);
 
-                if (classMapping.TableStatus == DataStatus.None) continue;
+            }
+        }
 
-                var representation = mapping.StatusRepresentations.FirstOrDefault(r => r.Status == classMapping.TableStatus);
-                if (representation != null)
-                {
-                    SetTabColour(worksheetPart, representation.Colour);
-                }
+        private static void InitialiseTabColour(ModelMapping mapping, ClassMapping classMapping, WorksheetPart worksheetPart)
+        {
+            var sheetProps = worksheetPart.Worksheet.SheetProperties;
+            if (worksheetPart.Worksheet.SheetProperties == null)
+                worksheetPart.Worksheet.SheetProperties = new SheetProperties();
+            if (worksheetPart.Worksheet.SheetProperties.TabColor == null)
+                worksheetPart.Worksheet.SheetProperties.TabColor = new TabColor();
 
+            if (classMapping.TableStatus == DataStatus.None) return;
+
+            var representation = mapping.StatusRepresentations.FirstOrDefault(r => r.Status == classMapping.TableStatus);
+            if (representation != null)
+            {
+                SetTabColour(worksheetPart, representation.Colour);
             }
         }
 
         private static void SetTabColour(WorksheetPart worksheetPart, string colour)
         {
-            var colorArgb =colour.Replace("#", "");
-            if (colorArgb.Length < 6)
+            var colorArgb =colour.Replace("#", "").ToUpperInvariant();
+
+            if (colorArgb.Length == 6)
                 colorArgb = $"FF{colorArgb}";   // Add Alpha
+            else if (colorArgb.Length == 3)
+                colorArgb = $"F{colorArgb}";   // Add Alpha
             worksheetPart.Worksheet.SheetProperties.TabColor.Rgb = HexBinaryValue.FromString(colorArgb);
         }
 
