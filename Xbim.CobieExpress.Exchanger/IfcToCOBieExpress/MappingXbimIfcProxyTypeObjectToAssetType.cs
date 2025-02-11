@@ -11,7 +11,7 @@ namespace Xbim.CobieExpress.Exchanger
     /// Maps a list of IfcTypeObject that are all the same
     /// </summary>
     internal class MappingXbimIfcProxyTypeObjectToAssetType :
-        XbimMappings<IModel, IModel, string, XbimIfcProxyTypeObject, CobieType>
+        XbimMappings<IModel, ICOBieModel, string, XbimIfcProxyTypeObject, CobieType>
     {
         public bool HasCategory
         {

@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using Xbim.CobieExpress.Exchanger.Classifications;
 using Xbim.CobieExpress.Exchanger.EqCompare;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
+using Xbim.CobieExpress.Exchanger.IfcToCOBieExpress;
 using Xbim.Common;
 using Xbim.Common.Configuration;
 using Xbim.Ifc4.Interfaces;
@@ -213,7 +214,7 @@ namespace Xbim.CobieExpress.Exchanger
         /// <param name="logger"></param>
         /// <param name="extId"></param>
         /// <param name="sysMode"></param>
-        public COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter reportProgress, ILogger logger = null, OutputFilters filter = null, string configurationFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types)
+        private COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter reportProgress, ILogger logger = null, OutputFilters filter = null, string configurationFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types)
         {
             Logger = logger ?? XbimServices.Current.CreateLogger<COBieExpressHelper>();
             _categoryMapping = exchanger.GetOrCreateMappings<MappingIfcClassificationReferenceToCategory>();
@@ -234,6 +235,19 @@ namespace Xbim.CobieExpress.Exchanger
             _creatingApplication = _model.Header.CreatingApplication;
             //pass the exchanger progress reporter over to helper
             ReportProgress = reportProgress; 
+        }
+
+        /// <summary>
+        /// Constructs a new COBieExpressHelper from a <see cref="IfcToCOBieExchangeConfiguration"/>
+        /// </summary>
+        /// <param name="exchanger"></param>
+        /// <param name="progressReporter"></param>
+        /// <param name="logger"></param>
+        /// <param name="configuration"></param>
+        public COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter progressReporter, ILogger logger, IfcToCOBieExchangeConfiguration configuration)
+            : this(exchanger, progressReporter, logger: logger, configuration.SelectionFilters, configuration.AttributeMappingFile, configuration.ExternalIdentifierSource,
+                  configuration.SystemExtractionMode)
+        {
         }
 
         public void Init()
@@ -530,7 +544,7 @@ namespace Xbim.CobieExpress.Exchanger
             if (SystemMode.HasFlag(SystemExtractionMode.System))
             {
                 _systemAssignment =
-                        _model.Instances.OfType<IIfcRelAssignsToGroup>().Where(r => r.RelatingGroup is IIfcSystem)
+                        _model.Instances.OfType<IIfcRelAssignsToGroup>().Where(r => r.RelatingGroup is IIfcSystem && !(r.RelatingGroup is IIfcZone))
                         .Distinct(new IfcRelAssignsToGroupRelatedGroupObjCompare()) //make sure we do not have duplicate keys, or ToDictionary will throw ex. could lose RelatedObjects though. 
                         .ToDictionary(k => (IIfcSystem)k.RelatingGroup, v => v.RelatedObjects);
                 _systemLookup = new Dictionary<IIfcObjectDefinition, List<IIfcSystem>>();
@@ -823,7 +837,7 @@ namespace Xbim.CobieExpress.Exchanger
                 using (var output = File.Create(tmpFile))
                 {
                     if (input != null) input.CopyTo(output);
-                    else Logger.LogWarning("Failed to load default  attributes configuration");
+                    else Logger.LogWarning("Failed to load default attributes configuration");
                 }
             }
                         

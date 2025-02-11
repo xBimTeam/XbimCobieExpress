@@ -4,7 +4,7 @@ using Xbim.Ifc;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal class MappingStringToExternalSystem : XbimMappings<IModel, IModel, string, string, CobieExternalSystem>
+    internal class MappingStringToExternalSystem : XbimMappings<IModel, ICOBieModel, string, string, CobieExternalSystem>
     {
         public override CobieExternalSystem CreateTargetObject()
         {

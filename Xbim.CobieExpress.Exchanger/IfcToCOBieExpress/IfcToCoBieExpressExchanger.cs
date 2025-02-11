@@ -1,38 +1,94 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using Xbim.CobieExpress.Exchanger.Classifications;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
-using Xbim.CobieExpress.Exchanger.IfcHelpers;
+using Xbim.CobieExpress.Exchanger.IfcToCOBieExpress;
 using Xbim.Common;
 using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    public class IfcToCoBieExpressExchanger : XbimExchanger<IModel, IModel>
+    /// <summary>
+    /// Provide conversion between models in IFC schema to a well defined COBie schema
+    /// </summary>
+    public class IfcToCoBieExpressExchanger : XbimExchanger<IModel, ICOBieModel>
     {
-        private readonly bool _classify;
-        internal COBieExpressHelper Helper ;
+        private readonly ILogger<IfcToCoBieExpressExchanger> logger;
+
+        protected IfcToCOBieExchangeConfiguration Configuration { get; private set; }
+
+
         /// <summary>
-        /// Instantiates a new IIfcToCOBieLiteUkExchanger class.
+        /// Constructs a new <see cref="IfcToCoBieExpressExchanger"/>
         /// </summary>
-        public IfcToCoBieExpressExchanger(IModel source, IModel target, ReportProgressDelegate reportProgress = null, OutputFilters filter = null, string configFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types, bool classify = false) 
-            : base(source, target)
+        /// <param name="logger"></param>
+        public IfcToCoBieExpressExchanger(ILogger<IfcToCoBieExpressExchanger> logger) : base()
         {
+            this.logger = logger;
+        }
 
-            ReportProgress.Progress = reportProgress; //set reporter
-            Helper = new COBieExpressHelper(this, ReportProgress, default, filter, configFile, extId, sysMode);
+        /// <summary>
+        /// Instantiates a new IfcToCOBieLiteUkExchanger class.
+        /// </summary>
+        /// <param name="source">The source IFC model</param>
+        /// <param name="target">The target <see cref="ICOBieModel"/></param>
+        /// <param name="reportProgress">A progress delegate</param>
+        /// <param name="filter">The IFC <see cref="OutputFilters"/> to apply</param>
+        /// <param name="configFile">The IFC Property mapping configuration file to apply (defaults to embedded CobieAttributes.config)</param>
+        /// <param name="extId">The External Identifier strategy (defaults to Ifc EntityLabels)</param>
+        /// <param name="sysMode">The strategy for extracting Systems</param>
+        /// <param name="classify">Determines whether category should be inferred from IFC Classifications (defaults false)</param>
+        public IfcToCoBieExpressExchanger(IModel source, ICOBieModel target, ReportProgressDelegate reportProgress = null, 
+            OutputFilters filter = null, 
+            string configFile = null, 
+            EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, 
+            SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types, 
+            bool classify = false) 
+            : base()
+        {
+            IfcToCOBieExchangeConfiguration config = new IfcToCOBieExchangeConfiguration()
+            {
+                ReportProgressDelegate = reportProgress,
+                SelectionFilters = filter,
+                AttributeMappingFile = configFile,
+                ExternalIdentifierSource = extId,
+                SystemExtractionMode = sysMode,
+                Classify = classify
+
+            };
+            Initialise(config, source, target);
+        }
+
+        /// <summary>
+        /// Initialisers the Exchanger with runtime parameters before a conversion.
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="source"></param>
+        /// <param name="cobieModel"></param>
+        public void Initialise(IfcToCOBieExchangeConfiguration configuration, IModel source, ICOBieModel cobieModel)
+        {
+            base.Initialise(source, cobieModel);
+            Configuration = configuration;
+            ReportProgress.Progress = configuration.ReportProgressDelegate; //set reporter
+            Helper = new COBieExpressHelper(this, ReportProgress, logger, configuration);
             Helper.Init();
-
-            _classify = classify;
         }
 
         /// <summary>
         /// 
         /// </summary>
+        internal COBieExpressHelper Helper { get; private set; }
+
+        /// <summary>
+        /// Converts a source (IFC) model to COBie schema using the defined mapping configuration
+        /// </summary>
         /// <returns></returns>
-        public override IModel Convert()
+        public override ICOBieModel Convert()
         {
+            if (Configuration == null || Helper == null)
+                throw new System.InvalidOperationException("IfcToCoBieExpressExchanger not initialised");
+
             var mapping = GetOrCreateMappings<MappingIfcBuildingToFacility>();
             var classifier = new Classifier(this);
             var buildings = SourceRepository.Instances.OfType<IIfcBuilding>().ToList();
@@ -41,7 +97,7 @@ namespace Xbim.CobieExpress.Exchanger
             {
                 var facility = TargetRepository.Instances.New<CobieFacility>();
                 facility = mapping.AddMapping(building, facility);
-                if(_classify)
+                if(Configuration.Classify)
                     classifier.Classify(facility);
                 facilities.Add(facility);
             }

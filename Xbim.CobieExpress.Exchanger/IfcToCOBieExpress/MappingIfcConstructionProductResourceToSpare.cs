@@ -8,7 +8,7 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal class MappingIfcConstructionProductResourceToSpare : XbimMappings<IModel, IModel, int, IIfcConstructionProductResource, CobieSpare>
+    internal class MappingIfcConstructionProductResourceToSpare : XbimMappings<IModel, ICOBieModel, int, IIfcConstructionProductResource, CobieSpare>
     {
         /// <summary>
         /// Helper

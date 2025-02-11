@@ -18,7 +18,33 @@ using Xbim.IO.Table;
 
 namespace Xbim.IO.CobieExpress
 {
-    public class CobieModel : IModel, IDisposable
+    /// <summary>
+    /// <para>
+    /// Class representing a COBie data model supporting reading, querying and writing of
+    /// data in the COBie schema. 
+    /// </para>
+    /// 
+    /// <para>
+    /// The COBieModel is backed by the EXPRESS technology enabling COBie to adopt the same mechanics
+    /// as the xbim IFC schemas, so can be serialised to a version of STEP, and can be used as if
+    /// it's just another IFC schema - with a custom set of entities. 
+    /// </para>
+    /// 
+    /// <para>
+    /// E.g. 
+    /// <code>
+    /// CobieModel model = GetModel();
+    /// model.Instance.OfType&lt;COBieSpace&gt;()   // Gets all spaces
+    /// </code>
+    /// </para>
+    /// 
+    /// 
+    /// <para>
+    /// A COBieModel can be generated from IFC models using <c>Xbim.CobieExpress.ExchangerIfcToCoBieExpressExchanger</c>
+    /// and serialised to and deserialised from Excel using <c>Xbim.IO.Table.TableStore</c>
+    /// </para>
+    /// </summary>
+    public class CobieModel : IModel, ICOBieModel, IDisposable
     {
         private readonly IModel _model;
 

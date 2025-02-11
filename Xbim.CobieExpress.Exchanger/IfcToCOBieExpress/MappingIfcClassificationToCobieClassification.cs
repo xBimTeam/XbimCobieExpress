@@ -5,7 +5,7 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal class MappingIfcClassificationToCobieClassification : XbimMappings<IModel, IModel, string, IIfcClassification, CobieClassification>
+    internal class MappingIfcClassificationToCobieClassification : XbimMappings<IModel, ICOBieModel, string, IIfcClassification, CobieClassification>
     {
         public override CobieClassification CreateTargetObject()
         {

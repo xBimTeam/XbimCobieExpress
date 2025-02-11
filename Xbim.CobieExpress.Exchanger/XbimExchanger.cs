@@ -13,24 +13,24 @@ namespace Xbim.CobieExpress.Exchanger
         /// </summary>
         public object Context { get; protected set; }
 
-        protected XbimExchanger(TSourceRepository source, TTargetRepository target)
+        protected XbimExchanger()
         {
-            _target = target;
-            _source = source;
             ReportProgress = new ProgressReporter(); //no ReportProgressDelegate set so will not report
         }
 
-        private readonly TSourceRepository _source;
-        private readonly TTargetRepository _target;
-        public TTargetRepository TargetRepository { get { return _target; } }
-        public TSourceRepository SourceRepository { get { return _source; } }
+        public TTargetRepository TargetRepository { get; private set; }
+        public TSourceRepository SourceRepository { get; private set; }
 
         /// <summary>
         /// Object to use to report progress on Exchangers
         /// </summary>
-        public ProgressReporter ReportProgress
-        { get; set; }
+        public ProgressReporter ReportProgress { get; private set; }
 
+        protected void Initialise(TSourceRepository source, TTargetRepository target)
+        {
+            TargetRepository = target;
+            SourceRepository = source;
+        }
 
         public TMapping GetOrCreateMappings<TMapping>() where TMapping : IXbimMappings<TSourceRepository, TTargetRepository>, new()
         {

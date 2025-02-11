@@ -7,7 +7,7 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal class MappingSystemViaIfcPropertyToSystem : XbimMappings<IModel, IModel, int, IIfcPropertySet, CobieSystem>
+    internal class MappingSystemViaIfcPropertyToSystem : XbimMappings<IModel, ICOBieModel, int, IIfcPropertySet, CobieSystem>
     {
         private MappingIfcElementToComponent _elementToComponent;
 
