@@ -8,20 +8,23 @@ namespace Xbim.IO.Table
     public static class WorkbookExtensions
     {
         /// <summary>
-        /// Gets a <typeparamref name="T"/> using the <paramref name="getterPredicate"/>, creating a new instance with 
+        /// Gets a <typeparamref name="TOut"/> using the <paramref name="getterPredicate"/>, creating a new instance with 
         /// <paramref name="createFn"/> where no item matches
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="workbook"></param>
+        /// <typeparam name="TIn"></typeparam>
+        /// <typeparam name="TOut"></typeparam>
+        /// <param name="parentElement"></param>
         /// <param name="createFn"></param>
         /// <param name="getterPredicate"></param>
         /// <returns></returns>
-        public static T GetOrCreate<T>(this OpenXmlElement workbook, Func<OpenXmlElement, T> createFn, Func<OpenXmlElement, T> getterPredicate = null) where T : OpenXmlElement
+        public static TOut GetOrCreate<TIn, TOut>(this TIn parentElement, Func<TIn, TOut> createFn, Func<TIn, TOut> getterPredicate = null)
+            where TIn: OpenXmlCompositeElement
+            where TOut : OpenXmlElement
         {
-            getterPredicate ??= (wb => wb.GetFirstChild<T>());
+            getterPredicate ??= (wb => wb.GetFirstChild<TOut>());
 
-            T item = getterPredicate(workbook);
-            item ??= createFn(workbook);
+            TOut item = getterPredicate(parentElement);
+            item ??= createFn(parentElement);
             return item;
         }
 

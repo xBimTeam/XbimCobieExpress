@@ -851,7 +851,7 @@ namespace Xbim.IO.Table
                     cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(mapping.Header);
 
                     cell.StyleIndex = GetOrSetStyleIndex(DataStatus.Header, workbook.WorkbookStylesPart.Stylesheet);
-                    
+
                     // Add the cell to the row
                     row.Append(cell);
                 }
@@ -871,7 +871,7 @@ namespace Xbim.IO.Table
 
                 if (column == null)
                 {
-                    column = new Column { Min =(uint)mapping.ColumnIndex, Max = (uint)mapping.ColumnIndex, CustomWidth = true, Width = 15 };
+                    column = new Column { Min = (uint)mapping.ColumnIndex, Max = (uint)mapping.ColumnIndex, CustomWidth = true, Width = 15 };
                     columns.Append(column);
                 }
                 if (mapping.Hidden)
@@ -883,13 +883,18 @@ namespace Xbim.IO.Table
                     // Create named ranges for Keys columns
                     DefineNamedKeys(workbook, classMapping, mapping);
                 }
-                if (!string.IsNullOrEmpty(mapping.LookUp))//(mapping.Status == DataStatus.Reference || mapping.Status == DataStatus.PickValue)
+                if (!string.IsNullOrEmpty(mapping.LookUp))
                 {
                     // Create Data validations back to keyed columns
                     AddDataValidation(sheetPart, mapping);
                 }
             }
 
+            AddAutofilters(sheetPart, classMapping, sheetData);
+        }
+
+        private static void AddAutofilters(WorksheetPart sheetPart, ClassMapping classMapping, SheetData sheetData)
+        {
             //set up filter
             var lastPropMap = classMapping.PropertyMappings.OrderBy(p => p.ColumnIndex).LastOrDefault();
 
@@ -908,7 +913,7 @@ namespace Xbim.IO.Table
 
         private static void DefineNamedKeys(WorkbookPart workbook, ClassMapping classMapping, PropertyMapping mapping)
         {
-            DefinedNames definedNames = workbook.Workbook.GetOrCreate(c => new DefinedNames());
+            DefinedNames definedNames = workbook.Workbook.GetOrCreate(c => c.AppendChild(new DefinedNames()));
             var keyName = $"{classMapping.TableName}.{mapping.Header}";
             var appliesToRange = $"${mapping.Column}:${mapping.Column}";
             var targetRange = $"{classMapping.TableName}!{appliesToRange}"; // Range to cover
