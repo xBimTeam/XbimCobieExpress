@@ -612,7 +612,10 @@ namespace Xbim.CobieExpress.Exchanger
         }
         private void GetTypeMaps()
         {
-
+            // IfcTypes are frequently duplicated in exporters. e.g. multiple types with the same name and properties.
+            // This process aims to 1) deduplicate types, and relink Components to a single common type, and 2) ensure the Typename is unique where
+            // a single Type could not be identified.
+            
             var relDefinesByType = _model.Instances.OfType<IIfcRelDefinesByType>().Where(r => !Filter.ObjFilter(r.RelatingType) && r.RelatingType != null).ToList();
             //creates a dictionary of uniqueness for type objects
             var propertySetHashes = new Dictionary<long,string>();
@@ -621,9 +624,11 @@ namespace Xbim.CobieExpress.Exchanger
             ReportProgress.NextStage(relDefinesByRelType.Count, 17);
             foreach (var typeObject in relDefinesByRelType)
             {
+                // Get a 32bit hash of the Type using a subset of the object graph we consider relevant.
                 var hash = GetTypeObjectHash(typeObject);
                 if (!propertySetHashes.ContainsKey(hash))
                 {
+                    // Unique type name across the table
                     var typeName = BuildUniqueTypeName(typeObject);
                     propertySetHashes.Add(hash, typeName);
                     proxyTypesByKey.Add(hash, new XbimIfcProxyTypeObject(this, typeObject, typeName));
@@ -639,7 +644,8 @@ namespace Xbim.CobieExpress.Exchanger
             foreach (var group in grouping)
             {
                 //filter on in assembly, and ifcElement if filtered in ProductFilter even if the ifcTypeObject is not filtered (passed filter in relDefinesByType assignment above)
-                var allObjects = group.SelectMany(o => o.ToList()).OfType<IIfcElement>().Where(e => !assemblyParts.Contains(e) && !Filter.ObjFilter(e, false)).ToList();  
+                var allObjects = group.SelectMany(o => o.ToList()).OfType<IIfcElement>()
+                    .Where(e => !assemblyParts.Contains(e) && !Filter.ObjFilter(e, false)).ToList();  
                 _definingTypeObjectMap.Add(group.Key,allObjects);
                 ReportProgress.IncrementAndUpdate();
             }
@@ -741,36 +747,7 @@ namespace Xbim.CobieExpress.Exchanger
 
         private static long GetTypeObjectHash(IIfcTypeObject typeObject)
         {
-            if (typeObject == null)
-            {
-                return 0;
-            }
-            // Perform a deep hash check, using HashCode, accounting for the propertyName and raw values
-            // in an ordered set of Psets/Properties.
-            // Accounts for PropertySingleValues only 
-            long hashCode = HashCode.Combine(typeObject.Name.Value, typeObject.GetType().Name);
-            return typeObject.HasPropertySets
-                        .OrderBy(e => e.Name?.Value)
-                        .Aggregate(hashCode, (current, next) => CalculateHash(next, current));
-
-            
-        }
-
-        private static long CalculateHash(IIfcPropertySetDefinition set, long hashCode)
-        {
-            return set switch
-            {
-                IIfcPropertySet pset => HashCode.Combine(hashCode, set.Name?.Value,
-                    pset.HasProperties.OfType<IIfcPropertySingleValue>()
-                    .OrderBy(e => e.Name.Value)
-                    .Aggregate(hashCode, (current, p) => 
-                        HashCode.Combine(current, p.Name.Value, p.NominalValue?.Value))),
-
-                IIfcDoorLiningProperties d => hashCode, // TODO could account for Predefined properties. excluding Name etc
-                IIfcPreDefinedPropertySet l => hashCode,
-                _ => hashCode
-            };
-
+            return typeObject.CalculateHash();
         }
 
 

@@ -81,7 +81,10 @@ namespace Xbim.CobieExpress.Exchanger
         {
             get
             {
-                if(_ifcTypeObject != null)
+                // Note: This can re-introduce duplicate names again. We earlier ensure unique names and
+                // Dedupe similar types, but by re-applying the original name from the property we may re-create a duplicate
+                // This can be post fixed if required. e.g. MakeUniqueNames()
+                if (_ifcTypeObject != null)
                     return _helper.GetCoBieProperty("AssetTypeName", _ifcTypeObject) ?? _name;
                 return _name;
             }

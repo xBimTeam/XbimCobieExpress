@@ -110,51 +110,31 @@ namespace Xbim.CobieExpress.Tests
         {
             MemoryModel ifcModel = LoadIfc(@"TestFiles\Primary_School.ifc");
 
-            var dict = new Dictionary<long, IIfcTypeObject>();
-            var types = ifcModel.Instances.OfType<Ifc4.Interfaces.IIfcTypeObject>(); //.Where(t => t.Name == "Window_Type01");
+            var dict = new Dictionary<int, IIfcTypeObject>();
+            var types = ifcModel.Instances.OfType<Ifc4.Interfaces.IIfcTypeObject>();
 
             int duplicates = 0;
 
             foreach (var typeObject in types)
             {
-                long hashCode = HashCode.Combine(typeObject.Name.Value, typeObject.GetType().Name);
-                if (typeObject.HasPropertySets != null && typeObject.HasPropertySets.Any())
+                var hashCode = typeObject.CalculateHash();
+
+                if(!dict.ContainsKey(hashCode))
                 {
-                    hashCode = typeObject.HasPropertySets
-                        .OrderBy(e => e.Name?.Value)
-                        .Aggregate(hashCode, (current, next) => CalculateHash(next, current));
-
-                    if(!dict.ContainsKey(hashCode))
-                    {
-                        dict.Add(hashCode, typeObject);
-                    }
-                    else
-                    {
-                        console.WriteLine("Object {0} is duplicate of {1}", typeObject, dict[hashCode]);
-                        duplicates++;
-                    }
+                    dict.Add(hashCode, typeObject);
                 }
-            }
-
-            dict.Count.Should().Be(151);
-            duplicates.Should().Be(23);
-        }
-
-        private long CalculateHash(IIfcPropertySetDefinition set, long hashCode)
-        {
-            return set switch
-            {
-                IIfcPropertySet pset => HashCode.Combine(hashCode, set.Name?.Value, 
-                    pset.HasProperties.OfType<IIfcPropertySingleValue>()
-                    .OrderBy(e => e.Name.Value)
-                    .Aggregate(hashCode, (current, p) => HashCode.Combine(current, p.Name.Value, p.NominalValue?.Value))),
+                else
+                {
+                    console.WriteLine("Object {0} is duplicate of {1}", typeObject, dict[hashCode]);
+                    duplicates++;
+                }
                 
-                IIfcDoorLiningProperties d => hashCode,
-                IIfcPreDefinedPropertySet l => hashCode,
-                _ => hashCode
-            };
-            
+            }
+            dict.Count.Should().Be(215);
+            duplicates.Should().Be(21);
+            types.Count().Should().Be(236);
         }
+
 
         [Fact]
         public void BaselineConfig()
@@ -215,7 +195,7 @@ namespace Xbim.CobieExpress.Tests
 
             cobieModel.Instances.OfType<CobieType>().Where(t => t.ExternalObject.Name == "IfcWallType").Should().BeEmpty("Not maintainable filtered out");
             cobieModel.Instances.OfType<CobieType>().Where(t => t.ExternalObject.Name == "IfcFurnitureType").Should().NotBeEmpty("Furnishings included");
-            cobieModel.Instances.OfType<CobieType>().Should().HaveCount(133);
+            cobieModel.Instances.OfType<CobieType>().Should().HaveCount(135);
             cobieModel.Instances.OfType<CobieType>().Where(s => s.ExternalObject.Name != "IfcBuildingElementProxyType" && s.ExternalObject.Name != "IfcCoveringType").Should().AllSatisfy(t =>
             {
                 t.Description.Should().NotBeNullOrEmpty();
