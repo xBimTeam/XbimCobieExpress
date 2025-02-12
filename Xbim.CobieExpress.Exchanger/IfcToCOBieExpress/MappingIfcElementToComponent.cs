@@ -20,12 +20,8 @@ namespace Xbim.CobieExpress.Exchanger
 
             target.AssetIdentifier = Helper.GetCoBieProperty("AssetIdentifier", ifcElement);
             target.BarCode = Helper.GetCoBieProperty("AssetBarCode", ifcElement);
-            if(!string.IsNullOrWhiteSpace(ifcElement.Description))
-                target.Description = ifcElement.Description;
-            else
-            {
-                 target.Description = Helper.GetCoBieProperty("AssetSerialNumber", ifcElement);
-            }
+            target.Description = Helper.GetCoBieProperty("AssetDescription", ifcElement) ?? ifcElement.Description;
+         
             target.InstallationDate = Helper.GetSimpleValue<DateTime>("AssetInstallationDate", ifcElement);
             target.SerialNumber = Helper.GetCoBieProperty("AssetSerialNumber", ifcElement);
             target.TagNumber = Helper.GetCoBieProperty("AssetTagNumber", ifcElement);

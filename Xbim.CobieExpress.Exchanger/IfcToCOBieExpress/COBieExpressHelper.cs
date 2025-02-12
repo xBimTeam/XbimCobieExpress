@@ -8,10 +8,10 @@ using System.Text.RegularExpressions;
 using Xbim.CobieExpress.Exchanger.Classifications;
 using Xbim.CobieExpress.Exchanger.EqCompare;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
-using Xbim.CobieExpress.Exchanger.IfcToCOBieExpress;
 using Xbim.Common;
 using Xbim.Common.Configuration;
 using Xbim.Ifc4.Interfaces;
+
 
 namespace Xbim.CobieExpress.Exchanger
 {
@@ -142,13 +142,13 @@ namespace Xbim.CobieExpress.Exchanger
         private CobieRole _unknownRole;
         public CobieRole UnknownRole
         {
-            get { return _unknownRole ?? (_unknownRole = GetPickValue<CobieRole>("unknown")); }
+            get { return _unknownRole ?? (_unknownRole = GetPickValue<CobieRole>("n/a")); }
         }
 
         private CobieCategory _unknownCategory;
         public CobieCategory UnknownCategory 
         {
-            get { return _unknownCategory ?? (_unknownCategory = GetPickValue<CobieCategory>("unknown")); }
+            get { return _unknownCategory ?? (_unknownCategory = GetPickValue<CobieCategory>("n/a")); }
         }
 
         #endregion
@@ -615,16 +615,16 @@ namespace Xbim.CobieExpress.Exchanger
 
             var relDefinesByType = _model.Instances.OfType<IIfcRelDefinesByType>().Where(r => !Filter.ObjFilter(r.RelatingType) && r.RelatingType != null).ToList();
             //creates a dictionary of uniqueness for type objects
-            var propertySetHashes = new Dictionary<string,string>();
-            var proxyTypesByKey = new Dictionary<string, XbimIfcProxyTypeObject>();
+            var propertySetHashes = new Dictionary<long,string>();
+            var proxyTypesByKey = new Dictionary<long, XbimIfcProxyTypeObject>();
             var relDefinesByRelType = relDefinesByType.Select(r => r.RelatingType).ToList();
             ReportProgress.NextStage(relDefinesByRelType.Count, 17);
             foreach (var typeObject in relDefinesByRelType)
             {
-                var hash = GetTypeObjectHashString(typeObject);
+                var hash = GetTypeObjectHash(typeObject);
                 if (!propertySetHashes.ContainsKey(hash))
                 {
-                    var typeName = BuildTypeName(typeObject);
+                    var typeName = BuildUniqueTypeName(typeObject);
                     propertySetHashes.Add(hash, typeName);
                     proxyTypesByKey.Add(hash, new XbimIfcProxyTypeObject(this, typeObject, typeName));
                 }
@@ -633,7 +633,7 @@ namespace Xbim.CobieExpress.Exchanger
             }
 
             var assemblyParts = new HashSet<IIfcObjectDefinition>(_model.Instances.OfType<IIfcRelAggregates>().SelectMany(a => a.RelatedObjects));
-            var grouping = relDefinesByType.GroupBy(k => proxyTypesByKey[GetTypeObjectHashString(k.RelatingType)],
+            var grouping = relDefinesByType.GroupBy(k => proxyTypesByKey[GetTypeObjectHash(k.RelatingType)],
                 kv => kv.RelatedObjects.Distinct(new EntityEqualityComparer<IIfcObject>())).ToList();
             ReportProgress.NextStage(grouping.Count, 19);
             foreach (var group in grouping)
@@ -680,7 +680,7 @@ namespace Xbim.CobieExpress.Exchanger
             //if the object has a classification we use this to distinguish types
 
             var unCategorizedAssetsWithTypes = unCategorizedAssets.GroupBy
-                (t=>GetProxyTypeObject(t).Name, v => v).ToDictionary(k=>k.Key,v=>v.ToList());
+                (t => GetTypeObjectHash(GetProxyTypeObject(t).IfcTypeObject), v => v).ToDictionary(k=>k.Key,v=>v.ToList());
             ReportProgress.NextStage(unCategorizedAssetsWithTypes.Count, 23);
             foreach (var unCategorizedAssetsWithType in unCategorizedAssetsWithTypes)
             {
@@ -693,7 +693,10 @@ namespace Xbim.CobieExpress.Exchanger
                 }
                 else
                 {
-                    proxyType = new XbimIfcProxyTypeObject(this,unCategorizedAssetsWithType.Key);
+                    var type = GetProxyTypeObject(unCategorizedAssetsWithType.Value.FirstOrDefault());
+                    var typeName = type.Name;
+                    // TODO: Why are we re-adding?
+                    proxyType = new XbimIfcProxyTypeObject(this, typeName);
                     proxyTypesByKey.Add(unCategorizedAssetsWithType.Key, proxyType);
                     _definingTypeObjectMap.Add(proxyType, unCategorizedAssetsWithType.Value);
                 }
@@ -736,26 +739,42 @@ namespace Xbim.CobieExpress.Exchanger
             }
         }
 
-        private static string GetTypeObjectHashString(IIfcTypeObject typeObject)
+        private static long GetTypeObjectHash(IIfcTypeObject typeObject)
         {
             if (typeObject == null)
             {
-                return "null";
+                return 0;
             }
-            var hashString = "";
-            if (typeObject.HasPropertySets != null && typeObject.HasPropertySets.Any())
-            {
-                var labels = typeObject.HasPropertySets.Select(t => t.EntityLabel).OrderBy(e => e);
+            // Perform a deep hash check, using HashCode, accounting for the propertyName and raw values
+            // in an ordered set of Psets/Properties.
+            // Accounts for PropertySingleValues only 
+            long hashCode = HashCode.Combine(typeObject.Name.Value, typeObject.GetType().Name);
+            return typeObject.HasPropertySets
+                        .OrderBy(e => e.Name?.Value)
+                        .Aggregate(hashCode, (current, next) => CalculateHash(next, current));
 
-                hashString = labels.Aggregate(hashString, (current, label) => current + (label + ":"));
-            }
-            //might be good to add classification
-            hashString += typeObject.Name+":";
-            hashString += typeObject.GetType().Name;
-            return hashString;
+            
         }
 
-        private string ChangeNameFromStyleToType(IIfcTypeObject ifcTypeObject)
+        private static long CalculateHash(IIfcPropertySetDefinition set, long hashCode)
+        {
+            return set switch
+            {
+                IIfcPropertySet pset => HashCode.Combine(hashCode, set.Name?.Value,
+                    pset.HasProperties.OfType<IIfcPropertySingleValue>()
+                    .OrderBy(e => e.Name.Value)
+                    .Aggregate(hashCode, (current, p) => 
+                        HashCode.Combine(current, p.Name.Value, p.NominalValue?.Value))),
+
+                IIfcDoorLiningProperties d => hashCode, // TODO could account for Predefined properties. excluding Name etc
+                IIfcPreDefinedPropertySet l => hashCode,
+                _ => hashCode
+            };
+
+        }
+
+
+        private string GetIfcTypeName(IIfcTypeObject ifcTypeObject)
         {
             if (ifcTypeObject == null)
                 return "null";
@@ -767,21 +786,22 @@ namespace Xbim.CobieExpress.Exchanger
             
         }
 
-        private string BuildTypeName(IIfcTypeObject ifcTypeObject)
+        private string BuildUniqueTypeName(IIfcTypeObject ifcTypeObject)
         {
-            var typeName = AllocateTypeName(ChangeNameFromStyleToType(ifcTypeObject));
-            //remove names
-            return string.Format("{0} {1}", typeName, ifcTypeObject.Name);
+            return AllocateTypeName(ifcTypeObject.Name, GetIfcTypeName(ifcTypeObject));
         }
 
-        private string AllocateTypeName(string typeName)
+        private string AllocateTypeName(string baseTypeName, string ifcType = "")
         {
-            
-            if (_typeNames.ContainsKey(typeName))
-                _typeNames[typeName]++;
+            if (_typeNames.ContainsKey(baseTypeName))
+            {
+                // Duplicate Type name
+                _typeNames[baseTypeName]++;
+                return string.Format("{0}-{1}{2:000}", baseTypeName, ifcType, _typeNames[baseTypeName]);
+            }
             else
-                _typeNames.Add(typeName, 1);
-            return string.Format("{0}.{1}", typeName, _typeNames[typeName]);
+                _typeNames.Add(baseTypeName, 0);
+            return baseTypeName;
         }
 
         /// <summary>
@@ -1147,7 +1167,9 @@ namespace Xbim.CobieExpress.Exchanger
         private List<CobieCategory> ConvertToCategories(IEnumerable<IIfcClassificationReference> classifications)
         {
             var categories = new List<CobieCategory>();
-            foreach (var classification in classifications)
+            // Order by classification (naively). Helps with clarity when we have multiple
+            var orderedClassifications = classifications.OrderBy(c => (c.ReferencedSource as IIfcClassification)?.Name.Value ?? "").ThenBy(c=> c.Name?.Value);
+            foreach (var classification in orderedClassifications)
             { 
                 CobieCategory category;
                 if (
@@ -1196,7 +1218,7 @@ namespace Xbim.CobieExpress.Exchanger
         private List<CobieCategory> ConvertToCategories(string code, string desc)
         {
             CobieCategory category;
-            if (!_categoryMapping.GetOrCreateTargetObject(code ?? desc ?? "unknown", out category))
+            if (!_categoryMapping.GetOrCreateTargetObject(code ?? desc ?? "n/a", out category))
                 return new List<CobieCategory> {category};
 
             if (!string.IsNullOrEmpty(code))
@@ -1430,7 +1452,7 @@ namespace Xbim.CobieExpress.Exchanger
                 {
                     var existPsetName = existingAttribute.PropertySet != null
                         ? existingAttribute.PropertySet.Name
-                        : "unknown";
+                        : "n/a";
                     var key = string.Format("{1}.{0}", existingAttribute.Name, existPsetName);
                     if(!uniqueAttributes.ContainsKey(key))
                     {
@@ -1503,7 +1525,7 @@ namespace Xbim.CobieExpress.Exchanger
             return ifcObject.GetType().Name;
         }
 
-        internal CobieExternalSystem GetExternalSystem(IIfcRoot ifcObject = null, bool usePropFirst = false)
+        internal CobieExternalSystem GetExternalSystem(IIfcRoot ifcObject = null, bool usePropFirst = true)
         {
             if (ExternalReferenceMode == ExternalReferenceMode.IgnoreSystem ||
                 ExternalReferenceMode == ExternalReferenceMode.IgnoreSystemAndEntityName)
@@ -1773,7 +1795,7 @@ namespace Xbim.CobieExpress.Exchanger
                 if (!string.IsNullOrWhiteSpace(project.Name))
                     return project.Name;
             }
-            return "Unknown";
+            return "n/a";
         }
 
 
@@ -1792,14 +1814,14 @@ namespace Xbim.CobieExpress.Exchanger
             return info;
         }
 
-        internal CobieCreatedInfo GetCreatedInfo(IIfcRoot ifcRoot = null, bool usePropFirst = false)
+        internal CobieCreatedInfo GetCreatedInfo(IIfcRoot ifcRoot = null, bool usePropFirst = true)
         {
             var contact = GetCreatedBy(ifcRoot, usePropFirst);
             var dateTime = GetCreatedOn(ifcRoot, usePropFirst) ?? _now;
             return GetCreatedInfo(contact, dateTime);
         }
 
-        internal CobieContact GetCreatedBy(IIfcRoot ifcRoot = null, bool usePropFirst = false)
+        internal CobieContact GetCreatedBy(IIfcRoot ifcRoot = null, bool usePropFirst = true)
         {
             if (ifcRoot == null) return XbimContact;
 
@@ -1830,7 +1852,7 @@ namespace Xbim.CobieExpress.Exchanger
             return XbimContact;
         }
 
-        private DateTime? GetCreatedOn(IIfcRoot ifcRoot = null, bool usePropFirst = false)
+        private DateTime? GetCreatedOn(IIfcRoot ifcRoot = null, bool usePropFirst = true)
         {
             //use the same time for all null root objects
             if (ifcRoot == null) return _now;

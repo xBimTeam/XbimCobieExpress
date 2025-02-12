@@ -35,7 +35,8 @@ namespace Xbim.CobieExpress.Exchanger
             var spaceElement = ifcSpatialStructureElement as IIfcSpace;
             if (site != null)
             {
-                target.Categories.Add(StringToCategory.GetOrCreate("Site"));
+                if(target.Categories.Count ==0)
+                    target.Categories.Add(StringToCategory.GetOrCreate("Site"));
                 //upgrade code below to use extension method GetSpaces()
 
                 if (site.IsDecomposedBy != null)
@@ -48,12 +49,14 @@ namespace Xbim.CobieExpress.Exchanger
             }
             else if (building != null)
             {
-                target.Categories.Add(StringToCategory.GetOrCreate("Building"));
+                if (target.Categories.Count == 0)
+                    target.Categories.Add(StringToCategory.GetOrCreate("Building"));
                 spaces = building.Spaces;
             }
             else if (storey != null)
             {
-                target.Categories.Add(StringToCategory.GetOrCreate("Floor"));
+                if (target.Categories.Count == 0)
+                    target.Categories.Add(StringToCategory.GetOrCreate("Floor"));
                 if (storey.Elevation.HasValue)
                 {
                     target.Elevation = storey.Elevation.Value;
@@ -62,7 +65,8 @@ namespace Xbim.CobieExpress.Exchanger
             }
             else if (spaceElement != null)
             {
-                target.Categories.Add(StringToCategory.GetOrCreate("Space"));
+                if (target.Categories.Count == 0)
+                    target.Categories.Add(StringToCategory.GetOrCreate("Space"));
                 spaces = spaceElement.Spaces;
             }
 
@@ -83,6 +87,11 @@ namespace Xbim.CobieExpress.Exchanger
 
                 space = SpatialStructureToSpace.AddMapping(element, space);
                 space.Floor = target;
+            }
+
+            if(target.Height == null)
+            {
+                target.Height = target.Spaces.Max(s=> s.UsableHeight);
             }
 
             //TODO: Floor Issues

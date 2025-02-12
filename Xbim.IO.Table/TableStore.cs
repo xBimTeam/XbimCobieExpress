@@ -1,4 +1,5 @@
 ﻿using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.EMMA;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
@@ -317,10 +318,9 @@ namespace Xbim.IO.Table
 
             }
 
-            //adjust width of the columns after the first and the eight row 
-            //adjusting fully populated workbook takes ages. This should be almost all right
-            if (row.RowIndex <= 2 || row.RowIndex == 8)
-                AdjustAllColumns(worksheetPart, mapping, row);
+            // adjust width of the columns for the initial rows and then sample every 100
+            if (row.RowIndex <= 8 || row.RowIndex % 100 == 0)
+                AdjustAllColumnsWidths(worksheetPart, mapping, row, row.RowIndex <= 2);
 
             //it is not a multi row so return
             if ((multiRow != null && multiRow.RowIndex <= 1) || multiValues == null || !multiValues.Any())
@@ -1141,18 +1141,30 @@ namespace Xbim.IO.Table
 
          
         }
+
+        const double MinColumnWidth = 8;
+        const double MaxColumnWidth = 50;
+        const double ColumnPadding = 1.5;
+
         //This operation takes very long time if applied at the end when spreadsheet is fully populated
-        private static void AdjustAllColumns(WorksheetPart sheet, ClassMapping mapping, Row row)
+        private static void AdjustAllColumnsWidths(WorksheetPart sheet, ClassMapping mapping, Row row, bool initialResize = false)
         {
             var columns = sheet.Worksheet.GetFirstChild<Columns>();
             var cells = row.Elements<Cell>();
             foreach (var col in mapping.PropertyMappings)
             {
-                var cellWidth = GetCellWidth(cells.FirstOrDefault(x => x.CellReference == col.Column + row.RowIndex.Value));
-
                 var column = columns.Elements<Column>().FirstOrDefault(x => x.Min == col.ColumnIndex && x.Max == col.ColumnIndex);
                 if(column != null)
-                    column.Width = cellWidth < 15 ? 15 : cellWidth;
+                {
+                    var cellWidth = GetCellWidth(cells.FirstOrDefault(x => x.CellReference == col.Column + row.RowIndex.Value));
+                    var optimalWidth = Math.Min(Math.Max(cellWidth + ColumnPadding, MinColumnWidth), MaxColumnWidth);
+                    // Set the width on first row, and grow it on subsequent.
+                    if(initialResize || optimalWidth > column.Width)
+                    {
+                        column.BestFit = true;
+                        column.Width = optimalWidth;
+                    }
+                }
 
             }
         }
@@ -1171,7 +1183,7 @@ namespace Xbim.IO.Table
                         {
 
                             string text = ((Text)element).Text;
-                            cellWidth += text.Length * 1.4; // Adjust this value based on your font and size
+                            cellWidth += text.Length * 1.0; // Adjust this value based on your font and size
                         }
                     }
                 }
@@ -1180,7 +1192,17 @@ namespace Xbim.IO.Table
             {
                 // Calculate width based on length of cell value
                 string text = cell.CellValue.Text;
-                cellWidth = text.Length * 1.4; // Adjust this value based on your font and size
+                if(cell.DataType == CellValues.Number)
+                {
+                    // Account for Floating point precision. E.g. 2500d => "2500.000000000000000002"
+                    try
+                    {
+                        var value = Convert.ToDouble(text);
+                        text = Math.Round(value, 8).ToString();
+                    }
+                    catch(FormatException) { }
+                }
+                cellWidth = text.Length * 1.0; // Adjust this value based on your font and size
             }
             return cellWidth;
         }
@@ -1265,7 +1287,7 @@ namespace Xbim.IO.Table
 
         private static void SetTabColour(WorksheetPart worksheetPart, string colour)
         {
-            var colorArgb =colour.Replace("#", "").ToUpperInvariant();
+            var colorArgb = colour.Replace("#", "").ToUpperInvariant();
 
             if (colorArgb.Length == 6)
                 colorArgb = $"FF{colorArgb}";   // Add Alpha
@@ -1275,20 +1297,19 @@ namespace Xbim.IO.Table
         }
 
         private static readonly Dictionary<string, short> ColourCodeCache = new Dictionary<string, short>();
-        private static readonly List<IndexedColor> IndexedColoursList = new List<IndexedColor>();
+        private static List<IndexedColor> IndexedColoursList
+        {
+            get => LazyColoursList.Value;
+        }
 
+        private static Lazy<List<IndexedColor>> LazyColoursList = new Lazy<List<IndexedColor>>(() => 
+        {
+            var props = typeof(IndexedColor).GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType == typeof(IndexedColor));
+            return props.Select(p => (IndexedColor)p.GetValue(null)).ToList();
+        });
 
         private static short GetClosestColour(string rgb)
         {
-            if (!IndexedColoursList.Any())
-            {
-                var props = typeof(IndexedColor).GetFields(BindingFlags.Static | BindingFlags.Public).Where(p => p.FieldType == typeof(IndexedColor));
-                foreach (var info in props)
-                {
-                    IndexedColoursList.Add((IndexedColor)info.GetValue(null));
-                }
-            }
-
             if (string.IsNullOrWhiteSpace(rgb))
                 return IndexedColor.Automatic.Index;
             rgb = rgb.Trim('#').Trim();

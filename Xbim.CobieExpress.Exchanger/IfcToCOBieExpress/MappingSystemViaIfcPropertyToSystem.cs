@@ -42,7 +42,7 @@ namespace Xbim.CobieExpress.Exchanger
             target.ExternalObject = helper.GetExternalObject(pSet);
             target.ExternalId = helper.ExternalEntityIdentity(pSet);
             target.ExternalSystem = helper.GetExternalSystem(pSet);
-            target.Name = string.IsNullOrEmpty(name) ? "Unknown" + pSet.EntityLabel : name;
+            target.Name = string.IsNullOrEmpty(name) ? "n/a" + pSet.EntityLabel : name;
             target.Description = string.IsNullOrEmpty(pSet.Description) ? name : pSet.Description.ToString();
             target.Created = helper.GetCreatedInfo(pSet);
             target.Categories.AddRange(helper.GetCategories(pSet));

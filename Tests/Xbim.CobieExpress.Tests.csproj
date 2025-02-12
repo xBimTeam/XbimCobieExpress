@@ -44,6 +44,9 @@
     <None Update="TestFiles\LakesideRestaurant.ifc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="TestFiles\Primary_School.ifc">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestFiles\SampleHouse4.cobiezip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

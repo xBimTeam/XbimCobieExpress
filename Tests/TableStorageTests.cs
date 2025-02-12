@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Xbim.CobieExpress;
+using Xbim.CobieExpress.Exchanger;
 using Xbim.Common;
 using Xbim.IO.CobieExpress;
 using Xbim.IO.Table;
@@ -103,6 +104,20 @@ namespace Xbim.IO.Tests
         [Fact]
         public void StoreAsXLSWithTemplate()
         {
+            //var input = @"TestFiles\SampleHouse4.ifc";
+            //var ifc = IO.Memory.MemoryModel.OpenReadStep21(input);
+            //var model = new CobieModel();
+            //using (var txn = model.BeginTransaction("Sample house conversion"))
+            //{
+            //    var exchanger = new IfcToCoBieExpressExchanger(default);
+            //    exchanger.Initialise(new IfcToCOBieExchangeConfiguration(), ifc, model);
+            //    exchanger.Convert();
+            //    txn.Commit();
+            //}
+            //var output = Path.ChangeExtension(input, ".cobie");
+
+            //model.SaveAsStep21Zip("SampleHouse4.cobiezip");
+
             var model = CobieModel.OpenStep21Zip(@"TestFiles\SampleHouse4.cobieZip");
 
             ModelMapping cobie24Mapping = GetCobieMapping();
@@ -113,7 +128,7 @@ namespace Xbim.IO.Tests
             var w = new Stopwatch();
             w.Start();
             var storage = new TableStore(model, cobie24Mapping);
-            storage.Store("SampleHouseTemplated.xlsx", templateStream);//
+            storage.Store("SampleHouseTemplated3.xlsx", templateStream);//
             w.Stop();
             //Debug.WriteLine(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds);
             Trace.WriteLine(string.Format(@"{0}ms to store the data as a table.", w.ElapsedMilliseconds));

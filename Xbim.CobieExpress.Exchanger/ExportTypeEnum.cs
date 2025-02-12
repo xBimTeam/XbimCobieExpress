@@ -55,8 +55,17 @@ namespace Xbim.CobieExpress.Exchanger
     [Flags]
     public enum SystemExtractionMode
     {
+        /// <summary>
+        /// Identify System from IfcSystems
+        /// </summary>
         System = 0x1, //default and should always be set
+        /// <summary>
+        /// Identify Systems with properties defined in 'SystemMaps' config
+        /// </summary>
         PropertyMaps = 0x2, //include properties as set by GetPropMap("SystemMaps")
+        /// <summary>
+        /// Include Types in System listings
+        /// </summary>
         Types = 0x4, //include types as system listing all defined objects in componentnsnames
     }
 }

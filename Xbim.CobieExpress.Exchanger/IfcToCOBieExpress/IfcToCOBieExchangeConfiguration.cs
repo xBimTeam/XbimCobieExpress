@@ -2,7 +2,7 @@
 using Xbim.Common;
 using Xbim.Common.Configuration;
 
-namespace Xbim.CobieExpress.Exchanger.IfcToCOBieExpress
+namespace Xbim.CobieExpress.Exchanger
 {
     /// <summary>
     /// Class defining the IFC to COBie Exchange configuration

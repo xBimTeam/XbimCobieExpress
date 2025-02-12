@@ -49,7 +49,7 @@
         <PropertyMapping Header="AreaUnits" Column="H" Status="PickValue" MultiRow="None" DefaultValue="unknown" Paths="AreaUnits.Value" DataType ="Text" LookUp="PickLists.AreaUnit"/>
         <PropertyMapping Header="VolumeUnits" Column="I" Status="PickValue" MultiRow="None" DefaultValue="unknown" Paths="VolumeUnits.Value" DataType ="Text" LookUp="PickLists.VolumeUnit"/>
         <PropertyMapping Header="CurrencyUnit" Column="J" Status="PickValue" MultiRow="None" DefaultValue="unknown" Paths="CurrencyUnit.Value" DataType ="Text" LookUp="PickLists.CurrencyUnit"/>
-        <PropertyMapping Header="AreaMeasurement" Column="K" Status="PickValue" MultiRow="None" DefaultValue="unknown" Paths="AreaMeasurement" DataType ="AlphaNumeric" LookUp=""/>
+        <PropertyMapping Header="AreaMeasurement" Column="K" Status="Required" MultiRow="None" DefaultValue="unknown" Paths="AreaMeasurement" DataType ="AlphaNumeric" LookUp=""/>
         <PropertyMapping Header="ExternalSystem" Column="L" Status="ExternalReference" MultiRow="None" DefaultValue="n/a" Paths="ExternalSystem.Name"  Hidden="false" DataType ="Text" LookUp=""/>
         <PropertyMapping Header="ExternalProjectObject" Column="M" Status="ExternalReference" MultiRow="None" DefaultValue="n/a" Paths="Project.ExternalObject.Name"  Hidden="false" DataType ="Text" LookUp="PickLists.objProject"/>
         <PropertyMapping Header="ExternalProjectIdentifier" Column="N" Status="ExternalReference" MultiRow="None" DefaultValue="n/a" Paths="Project.ExternalId"  Hidden="false" DataType ="Text" LookUp=""/>

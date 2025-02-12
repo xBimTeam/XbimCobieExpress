@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Xbim.CobieExpress.Exchanger.Classifications;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
-using Xbim.CobieExpress.Exchanger.IfcToCOBieExpress;
 using Xbim.Common;
 using Xbim.Ifc4.Interfaces;
 

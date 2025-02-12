@@ -59,6 +59,17 @@ namespace Xbim.CobieExpress.Exchanger
                 facility.VolumeUnits = helper.ModelVolumeUnit;
                 facility.CurrencyUnit = helper.ModelCurrencyUnit;
 
+                var orignApp = ifcProject.OwnerHistory?.OwningApplication?.ApplicationIdentifier.ToString() ?? "";
+                if(orignApp == "Revit")
+                {
+                    facility.AreaMeasurement = "Revit Default Area Calculation Method";
+                }
+                else
+                {
+                    // TODO: Define a Attribute?
+                    facility.AreaMeasurement = $"Unknown method - {orignApp}";
+                }
+
                 var storeys = ifcBuilding.BuildingStoreys;
                 var cobieFloors = storeys.Cast<IIfcSpatialStructureElement>().ToList();
                 // Previously used to create 'PlaceholderSpaces' but has been removed from CObieExpress.
@@ -222,7 +233,7 @@ namespace Xbim.CobieExpress.Exchanger
             //    } 
             //}
            
-            Exchanger.ReportProgress.Finalise(500); //finish with 500 millisecond delay
+            Exchanger.ReportProgress.Finalise(0); 
             
             return facility;
         }

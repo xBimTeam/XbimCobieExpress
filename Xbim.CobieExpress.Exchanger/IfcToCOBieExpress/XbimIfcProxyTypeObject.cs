@@ -81,6 +81,8 @@ namespace Xbim.CobieExpress.Exchanger
         {
             get
             {
+                if(_ifcTypeObject != null)
+                    return _helper.GetCoBieProperty("AssetTypeName", _ifcTypeObject) ?? _name;
                 return _name;
             }
         }
@@ -129,7 +131,7 @@ namespace Xbim.CobieExpress.Exchanger
                         return _helper.GetPickValue<CobieAssetType>("Moveable");
                     }
                 }
-                return _helper.GetPickValue<CobieAssetType>("notdefined");
+                return _helper.GetPickValue<CobieAssetType>("n/a");
             }
         }
 
@@ -166,9 +168,11 @@ namespace Xbim.CobieExpress.Exchanger
         {
             get
             {
-                return _ifcTypeObject != null ? 
-                    _ifcTypeObject.Description : 
-                    null;
+                if(_ifcTypeObject != null)
+                {
+                    return _helper.GetCoBieProperty("AssetTypeDescription", _ifcTypeObject) ?? _ifcTypeObject.Description;
+                }
+                return null;
             }
         }
         /// <summary>

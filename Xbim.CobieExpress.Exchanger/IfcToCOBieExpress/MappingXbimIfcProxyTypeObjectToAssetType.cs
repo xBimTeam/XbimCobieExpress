@@ -29,7 +29,7 @@ namespace Xbim.CobieExpress.Exchanger
             target.Name = proxyIfcTypeObject.Name;
             target.Categories.AddRange(proxyIfcTypeObject.Categories);
             var cat = target.Categories.FirstOrDefault();
-            HasCategory = ((cat != null) && ((cat.Value != "unknown") || target.Categories.Count > 1)); //assume if more than 1 we have a category
+            HasCategory = ((cat != null) && ((cat.Value != "n/a") || target.Categories.Count > 1)); //assume if more than 1 we have a category
             target.AssetType = proxyIfcTypeObject.AccountingCategory;
             target.Created = proxyIfcTypeObject.GetCreatedInfo();
             target.Description = proxyIfcTypeObject.Description;
@@ -37,7 +37,7 @@ namespace Xbim.CobieExpress.Exchanger
             List<IIfcElement> allAssetsofThisType;
             helper.DefiningTypeObjectMap.TryGetValue(proxyIfcTypeObject, out allAssetsofThisType);
 
-            target.WarrantyGuarantorParts = target.WarrantyGuarantorLabor;
+            
             if (ifcTypeObject != null)
             {
                 string manuf = helper.GetCoBieProperty("AssetTypeManufacturer", ifcTypeObject);
@@ -125,7 +125,7 @@ namespace Xbim.CobieExpress.Exchanger
                     if (!HasCategory)
                     {
                         var assetcat = component.Categories.FirstOrDefault();
-                        if ((assetcat != null) && (assetcat.Value != "unknown"))
+                        if ((assetcat != null) && (assetcat.Value != "n/a"))
                         {
                             target.Categories.Clear();
                             target.Categories.AddRange(component.Categories);
