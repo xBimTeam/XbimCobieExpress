@@ -68,6 +68,7 @@ namespace Xbim.CobieExpress.Tests
         }
 
         [Theory]
+        [InlineData(@"TestFiles\TestFile.ifc")]
         [InlineData(@"TestFiles\SampleHouse4.ifc")]
         public void ConvertIfcToCoBieExpressWithConfig(string input)
         {
@@ -83,7 +84,8 @@ namespace Xbim.CobieExpress.Tests
                 var exchanger = new IfcToCoBieExpressExchanger(default);
                 var configuration = new IfcToCOBieExchangeConfiguration
                 {
-                     
+                    AttributeMappingFile = @"TestFiles\CustomCOBieAttributes.config",
+                    InferTypePropertiesFromComponents = InferFromComponentMode.UnambiguousComponents
                 };
                 exchanger.Initialise(configuration, ifc, cobie);
                 w.Start();
@@ -98,10 +100,11 @@ namespace Xbim.CobieExpress.Tests
             console.WriteLine("Time to convert {0:N}MB file ({2} entities): {1}ms", inputInfo.Length / 1e6f, w.ElapsedMilliseconds, inputCount);
             console.WriteLine("Resulting size: {0:N}MB ({1} entities)", outputInfo.Length / 1e6f, cobie.Instances.Count);
 
-           
+
             //save as XLSX
+            using var templateStream = File.Open(@"TestFiles\COBie_UK_UniclassTemplate.xlsx", FileMode.Open, FileAccess.Read);
             output = Path.ChangeExtension(input +"-output", ".xlsx");
-            cobie.ExportToTable(output, out string report);
+            cobie.ExportToTable(output, out string report, CobieModel.GetMapping(), templateStream);
         }
 
 

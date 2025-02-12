@@ -123,7 +123,7 @@ namespace Xbim.IO.Tests
             ModelMapping cobie24Mapping = GetCobieMapping();
             cobie24Mapping.Init(model.Metadata);
 
-            using var templateStream = File.Open(@"TestFiles\COBie_UK_UniclassTemplate.xlsx", FileMode.Open, FileAccess.ReadWrite);
+            using var templateStream = File.Open(@"TestFiles\COBie_UK_UniclassTemplate.xlsx", FileMode.Open, FileAccess.Read);
 
             var w = new Stopwatch();
             w.Start();

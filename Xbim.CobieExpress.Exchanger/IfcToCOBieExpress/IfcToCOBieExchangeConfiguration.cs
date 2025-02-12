@@ -40,5 +40,40 @@ namespace Xbim.CobieExpress.Exchanger
         /// When <c>true</c> infers Categories from well known IFC Classifications
         /// </summary>
         public bool Classify { get; set; } = false;
+
+        /// <summary>
+        /// Indicates strategy for locating a Type's properties from its associated Components
+        /// </summary>
+        /// <remarks>Some models flatten properties so COBieType properties are on the IfcObjects rather than the IfcTypeObjects that
+        /// define the instances.</remarks>
+        public InferFromComponentMode InferTypePropertiesFromComponents { get; set; } = InferFromComponentMode.Disabled;
+
+        /// <summary>
+        /// Controls which External Systems data is exported
+        /// </summary>
+        public ExternalReferenceMode ExternalReferenceMode { get; set; } = ExternalReferenceMode.OutputAll;
+    }
+
+    /// <summary>
+    /// Defines the strategies to be used to locate Type Properties when not found on the type
+    /// </summary>
+    public enum InferFromComponentMode
+    {
+        /// <summary>
+        /// The Type is the only place where Type properties are checked
+        /// </summary>
+        Disabled = 0,
+
+        /// <summary>
+        /// Fall back to the first matching property on a Type's Components
+        /// </summary>
+        FirstComponent,
+
+        /// <summary>
+        /// Fall back to the matching properties on a Type's Component, but only where the value in unambiguous
+        /// </summary>
+        UnambiguousComponents
+
+
     }
 }

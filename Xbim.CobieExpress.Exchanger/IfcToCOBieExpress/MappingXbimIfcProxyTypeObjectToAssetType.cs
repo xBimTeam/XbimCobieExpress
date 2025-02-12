@@ -1,8 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Xbim.CobieExpress;
 using Xbim.Common;
-using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
@@ -34,30 +32,19 @@ namespace Xbim.CobieExpress.Exchanger
             target.Created = proxyIfcTypeObject.GetCreatedInfo();
             target.Description = proxyIfcTypeObject.Description;
             var ifcTypeObject = proxyIfcTypeObject.IfcTypeObject;
-            List<IIfcElement> allAssetsofThisType;
-            helper.DefiningTypeObjectMap.TryGetValue(proxyIfcTypeObject, out allAssetsofThisType);
+            
+            helper.DefiningTypeObjectMap.TryGetValue(proxyIfcTypeObject, out List<IIfcElement> allAssetsofThisType);
 
             
             if (ifcTypeObject != null)
             {
-                string manuf = helper.GetCoBieProperty("AssetTypeManufacturer", ifcTypeObject);
-                if (string.IsNullOrWhiteSpace(manuf) && allAssetsofThisType != null) //disagrrement between COBie and IFC where this value resides, look in assets
-                {
-                    foreach (var element in allAssetsofThisType)
-                    {
-                        var prop = helper.GetCoBieProperty("AssetTypeManufacturer", element);
-                        if(!string.IsNullOrWhiteSpace(prop))
-                        {
-                            manuf = prop;
-                            break;
-                        }
-                    }
-                }
-                target.Manufacturer = helper.GetOrCreateContact(manuf);
+                string manufacturer = helper.GetCoBieProperty("AssetTypeManufacturer", ifcTypeObject);
+                target.Manufacturer = helper.GetOrCreateContact(manufacturer);
 
                 helper.TrySetSimpleValue<double?>("AssetTypeReplacementCostValue", ifcTypeObject, v => target.ReplacementCost = v);
                 helper.TrySetSimpleValue<double?>("AssetTypeExpectedLifeValue", ifcTypeObject, v => target.ExpectedLife = v);
                 helper.TrySetSimpleValue<double>("AssetTypeNominalLength", ifcTypeObject, v => target.NominalLength = v);
+               
                 helper.TrySetSimpleValue<double>("AssetTypeNominalWidth", ifcTypeObject, v => target.NominalWidth = v);
                 helper.TrySetSimpleValue<double>("AssetTypeNominalHeight", ifcTypeObject, v => target.NominalHeight = v);
                 

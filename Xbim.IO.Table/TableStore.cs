@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -1296,7 +1297,7 @@ namespace Xbim.IO.Table
             worksheetPart.Worksheet.SheetProperties.TabColor.Rgb = HexBinaryValue.FromString(colorArgb);
         }
 
-        private static readonly Dictionary<string, short> ColourCodeCache = new Dictionary<string, short>();
+        private static readonly ConcurrentDictionary<string, short> ColourCodeCache = new ConcurrentDictionary<string, short>();
         private static List<IndexedColor> IndexedColoursList
         {
             get => LazyColoursList.Value;
@@ -1338,7 +1339,7 @@ namespace Xbim.IO.Table
                 distance = dist;
                 colour = col;
             }
-            ColourCodeCache.Add(rgb, colour.Index);
+            ColourCodeCache.TryAdd(rgb, colour.Index);
             return colour.Index;
         }
 

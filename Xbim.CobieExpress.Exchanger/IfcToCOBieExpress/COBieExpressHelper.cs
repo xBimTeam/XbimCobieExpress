@@ -5,13 +5,11 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Xbim.CobieExpress.Exchanger.Classifications;
 using Xbim.CobieExpress.Exchanger.EqCompare;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
 using Xbim.Common;
 using Xbim.Common.Configuration;
 using Xbim.Ifc4.Interfaces;
-
 
 namespace Xbim.CobieExpress.Exchanger
 {
@@ -22,6 +20,9 @@ namespace Xbim.CobieExpress.Exchanger
     /// </summary>
     public enum ExternalReferenceMode
     {
+        // Output always
+        OutputAll = 0,
+
         /// <summary>
         /// Does not write out the External Entity Type Name or the External System Name
         /// </summary>
@@ -49,31 +50,28 @@ namespace Xbim.CobieExpress.Exchanger
         /// <summary>
         /// Object to use to report progress on Exchangers
         /// </summary>
-        public ProgressReporter ReportProgress
-        { get; set; }
+        public ProgressReporter ReportProgress { get; set; }
+        public IfcToCOBieExchangeConfiguration Configuration { get; }
+        public IfcToCoBieExpressExchanger Exchanger { get; }
 
-        private readonly IModel _model;
+ 
         private readonly string _creatingApplication;
-
-        #region Model measurement units
-
-        #endregion
 
         #region Settings
 
-        public IModel Target { get; set; }
+        private IModel SourceModel { get => Exchanger.SourceRepository; }
+        public IModel Target { get => Exchanger.TargetRepository;  }
 
-        public IfcToCoBieExpressExchanger Exchanger { get; set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public EntityIdentifierMode EntityIdentifierMode { get; set; }
 
         /// <summary>
         /// 
         /// </summary>
-        public ExternalReferenceMode ExternalReferenceMode { get; set; }
+        public EntityIdentifierMode EntityIdentifierMode { get => Configuration.ExternalIdentifierSource; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public ExternalReferenceMode ExternalReferenceMode { get => Configuration.ExternalReferenceMode; }
 
         #endregion
 
@@ -133,7 +131,7 @@ namespace Xbim.CobieExpress.Exchanger
 
         #region Filters
 
-        private OutputFilters Filter  { get; set; }
+        private OutputFilters Filter  { get => Configuration.SelectionFilters ?? new OutputFilters(Logger); } 
 
         #endregion
 
@@ -153,7 +151,6 @@ namespace Xbim.CobieExpress.Exchanger
 
         #endregion
 
-        private readonly string _configFileName;
         private readonly Dictionary<IIfcActorSelect, CobieContact> _contacts = new Dictionary<IIfcActorSelect, CobieContact>();
         private Dictionary<IIfcActorSelect, IIfcActor> _actors;
         private readonly DateTime _now;
@@ -204,38 +201,6 @@ namespace Xbim.CobieExpress.Exchanger
             }
         }
 
-        /// <summary>
-        /// Constructs a new COBieExpressHelper
-        /// </summary>
-        /// <param name="filter"></param>
-        /// <param name="configurationFile"></param>
-        /// <param name="exchanger"></param>
-        /// <param name="reportProgress"></param>
-        /// <param name="logger"></param>
-        /// <param name="extId"></param>
-        /// <param name="sysMode"></param>
-        private COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter reportProgress, ILogger logger = null, OutputFilters filter = null, string configurationFile = null, EntityIdentifierMode extId = EntityIdentifierMode.IfcEntityLabels, SystemExtractionMode sysMode = SystemExtractionMode.System | SystemExtractionMode.Types)
-        {
-            Logger = logger ?? XbimServices.Current.CreateLogger<COBieExpressHelper>();
-            _categoryMapping = exchanger.GetOrCreateMappings<MappingIfcClassificationReferenceToCategory>();
-            _externalObjectMapping = exchanger.GetOrCreateMappings<MappingStringToExternalObject>();
-            _externalSystemMapping = exchanger.GetOrCreateMappings<MappingStringToExternalSystem>();
-            _contactMapping = exchanger.GetOrCreateMappings<MappingIfcActorToContact>();
-            _documentMapping = exchanger.GetOrCreateMappings<MappingIfcDocumentSelectToDocument>();
-            _now = DateTime.Now;
-
-            //set props
-            _configFileName = configurationFile;
-            Filter = filter  ?? new OutputFilters(Logger);
-            _model = exchanger.SourceRepository;
-            Target = exchanger.TargetRepository;
-            Exchanger = exchanger;
-            EntityIdentifierMode = extId;
-            SystemMode = sysMode;
-            _creatingApplication = _model.Header.CreatingApplication;
-            //pass the exchanger progress reporter over to helper
-            ReportProgress = reportProgress; 
-        }
 
         /// <summary>
         /// Constructs a new COBieExpressHelper from a <see cref="IfcToCOBieExchangeConfiguration"/>
@@ -245,9 +210,23 @@ namespace Xbim.CobieExpress.Exchanger
         /// <param name="logger"></param>
         /// <param name="configuration"></param>
         public COBieExpressHelper(IfcToCoBieExpressExchanger exchanger, ProgressReporter progressReporter, ILogger logger, IfcToCOBieExchangeConfiguration configuration)
-            : this(exchanger, progressReporter, logger: logger, configuration.SelectionFilters, configuration.AttributeMappingFile, configuration.ExternalIdentifierSource,
-                  configuration.SystemExtractionMode)
         {
+            Logger = logger ?? XbimServices.Current.CreateLogger<COBieExpressHelper>();
+            Configuration = configuration;
+            Exchanger = exchanger;
+
+            _categoryMapping = exchanger.GetOrCreateMappings<MappingIfcClassificationReferenceToCategory>();
+            _externalObjectMapping = exchanger.GetOrCreateMappings<MappingStringToExternalObject>();
+            _externalSystemMapping = exchanger.GetOrCreateMappings<MappingStringToExternalSystem>();
+            _contactMapping = exchanger.GetOrCreateMappings<MappingIfcActorToContact>();
+            _documentMapping = exchanger.GetOrCreateMappings<MappingIfcDocumentSelectToDocument>();
+            _now = DateTime.Now;
+
+            //set props
+            _creatingApplication = SourceModel.Header.CreatingApplication;
+            //pass the exchanger progress reporter over to helper
+            ReportProgress = progressReporter;
+
         }
 
         public void Init()
@@ -310,7 +289,7 @@ namespace Xbim.CobieExpress.Exchanger
         {
             Dictionary<IIfcResourceSelect, List<IIfcObjectDefinition>> resourceToObjs;
 
-            var ifcRelAssignsToResource = _model.Instances.OfType<IIfcRelAssignsToResource>().Where(
+            var ifcRelAssignsToResource = SourceModel1.Instances.OfType<IIfcRelAssignsToResource>().Where(
                 r => r.RelatingResource is IIfcConstructionProductResource && 
                     (
                         !HasValueRelatedObjectsTypeFix(r) //r.RelatedObjectsType == null 
@@ -403,9 +382,9 @@ namespace Xbim.CobieExpress.Exchanger
         {
             //------GET ORPHAN DOCUMENTINFOS------
             //Get all documents information objects held in model
-            var docAllInfos = _model.Instances.OfType<IIfcDocumentInformation>().ToList();
+            var docAllInfos = SourceModel1.Instances.OfType<IIfcDocumentInformation>().ToList();
             //Get the child document relationships
-            var childDocRels = _model.Instances.OfType<IIfcDocumentInformationRelationship>().ToList();
+            var childDocRels = SourceModel1.Instances.OfType<IIfcDocumentInformationRelationship>().ToList();
 
             //see if we have any documents not attached to IIfcRoot objects, but could be attached as children documents to a parent document...
 
@@ -435,7 +414,7 @@ namespace Xbim.CobieExpress.Exchanger
 
             //------GET ORPHAN DOCUMENTREFERENCES------
             //get all the doc reference objects held in the model
-            var docAllRefs = _model.Instances.OfType<IIfcDocumentReference>();
+            var docAllRefs = SourceModel1.Instances.OfType<IIfcDocumentReference>();
            
             //checked on direct attached to object document references
             var docRefsNotAttached = docAllRefs.Except(docRefsAttached).ToList();
@@ -455,7 +434,7 @@ namespace Xbim.CobieExpress.Exchanger
         /// <returns>IIfcDocumentSelect attached to IIfcRoot objects,</returns>
         private Dictionary<IIfcDocumentSelect, List<IIfcDefinitionSelect>> GetAssociatedDocuments()
         {
-            var ifcRelAssociatesDocuments = _model.Instances.OfType<IIfcRelAssociatesDocument>().ToList(); //linked to IIfcRoot objects
+            var ifcRelAssociatesDocuments = SourceModel1.Instances.OfType<IIfcRelAssociatesDocument>().ToList(); //linked to IIfcRoot objects
 
             //get fall back owner history
             DocumentOwnerLookup = ifcRelAssociatesDocuments.ToDictionary(p => p.RelatingDocument, p => p);
@@ -544,7 +523,7 @@ namespace Xbim.CobieExpress.Exchanger
             if (SystemMode.HasFlag(SystemExtractionMode.System))
             {
                 _systemAssignment =
-                        _model.Instances.OfType<IIfcRelAssignsToGroup>().Where(r => r.RelatingGroup is IIfcSystem && !(r.RelatingGroup is IIfcZone))
+                        SourceModel1.Instances.OfType<IIfcRelAssignsToGroup>().Where(r => r.RelatingGroup is IIfcSystem && !(r.RelatingGroup is IIfcZone))
                         .Distinct(new IfcRelAssignsToGroupRelatedGroupObjCompare()) //make sure we do not have duplicate keys, or ToDictionary will throw ex. could lose RelatedObjects though. 
                         .ToDictionary(k => (IIfcSystem)k.RelatingGroup, v => v.RelatedObjects);
                 _systemLookup = new Dictionary<IIfcObjectDefinition, List<IIfcSystem>>();
@@ -616,7 +595,7 @@ namespace Xbim.CobieExpress.Exchanger
             // This process aims to 1) deduplicate types, and relink Components to a single common type, and 2) ensure the Typename is unique where
             // a single Type could not be identified.
             
-            var relDefinesByType = _model.Instances.OfType<IIfcRelDefinesByType>().Where(r => !Filter.ObjFilter(r.RelatingType) && r.RelatingType != null).ToList();
+            var relDefinesByType = SourceModel1.Instances.OfType<IIfcRelDefinesByType>().Where(r => !Filter.ObjFilter(r.RelatingType) && r.RelatingType != null).ToList();
             //creates a dictionary of uniqueness for type objects
             var propertySetHashes = new Dictionary<long,string>();
             var proxyTypesByKey = new Dictionary<long, XbimIfcProxyTypeObject>();
@@ -637,7 +616,7 @@ namespace Xbim.CobieExpress.Exchanger
 
             }
 
-            var assemblyParts = new HashSet<IIfcObjectDefinition>(_model.Instances.OfType<IIfcRelAggregates>().SelectMany(a => a.RelatedObjects));
+            var assemblyParts = new HashSet<IIfcObjectDefinition>(SourceModel1.Instances.OfType<IIfcRelAggregates>().SelectMany(a => a.RelatedObjects));
             var grouping = relDefinesByType.GroupBy(k => proxyTypesByKey[GetTypeObjectHash(k.RelatingType)],
                 kv => kv.RelatedObjects.Distinct(new EntityEqualityComparer<IIfcObject>())).ToList();
             ReportProgress.NextStage(grouping.Count, 19);
@@ -679,7 +658,7 @@ namespace Xbim.CobieExpress.Exchanger
             var existingAssets = _objectToTypeObjectMap.Keys.OfType<IIfcElement>();
 
             //retrieve all the IfcElements from the model and exclude them if they are a member of an IIfcType, 
-            var unCategorizedAssets = _model.Instances.OfType<IIfcElement>()
+            var unCategorizedAssets = SourceModel1.Instances.OfType<IIfcElement>()
                 .Where(t => !(t is IIfcFeatureElement) && !assemblyParts.Contains(t) && !Filter.ObjFilter(t)) //filter IIfcElement it IIfcTypeObject it is defined by is in excluded list of IIfcTypeobjects
                 .Except(existingAssets);
             //convert to a Lookup with the key the type of the IIfcElement and the value a list of IIfcElements
@@ -717,7 +696,7 @@ namespace Xbim.CobieExpress.Exchanger
 
             //Get asset assignments
 
-            var assetRels = _model.Instances.OfType<IIfcRelAssignsToGroup>()
+            var assetRels = SourceModel1.Instances.OfType<IIfcRelAssignsToGroup>()
                 .Where(r => r.RelatingGroup is IIfcAsset).ToList();
 
             _assetAsignments = new Dictionary<IIfcTypeObject, IIfcAsset>();
@@ -823,8 +802,8 @@ namespace Xbim.CobieExpress.Exchanger
 
         private void LoadCobieMaps()
         {
-            var tmpFile = _configFileName;
-            if (_configFileName == null)
+            var tmpFile = Configuration.AttributeMappingFile;
+            if (Configuration.AttributeMappingFile == null)
             {
                 tmpFile = Path.GetTempPath() + Guid.NewGuid().ToString() + ".csv";
 
@@ -850,14 +829,14 @@ namespace Xbim.CobieExpress.Exchanger
 
             //using COBiePropertyMapping to set properties, might pass this into function, but for now read file passed file name, or default
             _cobiePropertyMaps = new CobiePropertyMapping(new FileInfo(tmpFile));            
-            if (_configFileName == null)
+            if (Configuration.AttributeMappingFile == null)
                 File.Delete(tmpFile);
         }
 
         private void GetPropertySets()
         {
             _attributedObjects = new Dictionary<IIfcObjectDefinition, XbimAttributedObject>();
-            var relProps = _model.Instances.OfType<IIfcRelDefinesByProperties>().ToList();
+            var relProps = SourceModel1.Instances.OfType<IIfcRelDefinesByProperties>().ToList();
             ReportProgress.NextStage(relProps.Count, 29);
             foreach (var relProp in relProps)
             {
@@ -900,7 +879,7 @@ namespace Xbim.CobieExpress.Exchanger
 
         private void GetSpacesAndZones()
         {
-            _spatialDecomposition = _model.Instances.OfType<IIfcRelAggregates>().Where(r=>r.RelatingObject is IIfcSpatialStructureElement)
+            _spatialDecomposition = SourceModel1.Instances.OfType<IIfcRelAggregates>().Where(r=>r.RelatingObject is IIfcSpatialStructureElement)
                 .ToLookup(ifcRelAggregate => (IIfcSpatialStructureElement) ifcRelAggregate.RelatingObject, ifcRelAggregate => ifcRelAggregate.RelatedObjects.OfType<IIfcSpatialStructureElement>().ToList());
             ReportProgress.NextStage(_spatialDecomposition.Count, 10);
             //get the relationship between spaces and storeys
@@ -916,7 +895,7 @@ namespace Xbim.CobieExpress.Exchanger
                 ReportProgress.IncrementAndUpdate();
             }
 
-            var relZones = _model.Instances.OfType<IIfcRelAssignsToGroup>().Where(r=>r.RelatingGroup is IIfcZone).ToList();
+            var relZones = SourceModel1.Instances.OfType<IIfcRelAssignsToGroup>().Where(r=>r.RelatingGroup is IIfcZone).ToList();
             ReportProgress.NextStage(relZones.Count, 13);
             ZoneSpaces = new Dictionary<IIfcZone, HashSet<IIfcSpace>>();
             _spaceZones = new Dictionary<IIfcSpace, HashSet<IIfcZone>>();
@@ -1008,7 +987,7 @@ namespace Xbim.CobieExpress.Exchanger
         /// </summary>
         public IModel Model
         {
-            get { return _model; }
+            get { return SourceModel1; }
         }
 
         /// <summary>
@@ -1056,12 +1035,14 @@ namespace Xbim.CobieExpress.Exchanger
 
         public Dictionary<string, CobieContact> SundryContacts { get; private set; }
 
-        public SystemExtractionMode SystemMode { get; internal set; }
+        public SystemExtractionMode SystemMode { get => Configuration.SystemExtractionMode; }
 
         public Dictionary<IIfcActorSelect, CobieContact> Contacts
         {
             get { return _contacts; }
         }
+
+        public IModel SourceModel1 => SourceModel;
 
         private void GetUnits()
         {
@@ -1302,30 +1283,71 @@ namespace Xbim.CobieExpress.Exchanger
         #endregion
 
         /// <summary>
-        /// 
+        /// Attempts to set the <typeparamref name="TSimpleType"/> setter with the property value found on the supplied <paramref name="ifcObjectDefinition"/>
         /// </summary>
-        /// <param name="valueName"></param>
-        /// <param name="ifcObjectDefinition"></param>
-        /// <param name="setter"></param>
+        /// <param name="valueName">The key in the attributes config file to locate the propertyNames</param>
+        /// <param name="ifcObjectDefinition">The IFC object to seek the properties on</param>
+        /// <param name="setter">The setter action to call on success</param>
         /// <typeparam name="TSimpleType"></typeparam>
-        /// <returns></returns>
+        /// <returns><c>true</c> if the value was found and set; otherwise <c>false</c></returns>
         /// <exception cref="ArgumentException"></exception>
-        public void TrySetSimpleValue<TSimpleType>(string valueName, IIfcObjectDefinition ifcObjectDefinition, Action<TSimpleType> setter)
+        public bool TrySetSimpleValue<TSimpleType>(string valueName, IIfcObjectDefinition ifcObjectDefinition, Action<TSimpleType> setter)
         {
+            
             XbimAttributedObject attributedObject;
             var result = default(TSimpleType);
             if (!_attributedObjects.TryGetValue(ifcObjectDefinition, out attributedObject)) 
-                return;
+                return false;
 
             var propertyNames = _cobiePropertyMaps.GetMap(valueName);
-            if (propertyNames != null)
+            if (propertyNames == null)
             {
-                if (propertyNames.Any(propertyName => attributedObject.TryGetAttributeValue(propertyName, out result)))
-                    setter(result);
-            }
-            else
                 throw new ArgumentException("Illegal COBie Attribute name:", valueName);
+            }
+            if (propertyNames.Any(propertyName => attributedObject.TryGetAttributeValue(propertyName, out result)))
+            {
+                setter(result);
+                return true;    // The standard path.
+            }
+            if(Configuration.InferTypePropertiesFromComponents != InferFromComponentMode.Disabled && ifcObjectDefinition is IIfcTypeObject typeObject)
+            {
+                // Attempt to get a value from the same Property on the Type's elements/assets
+                var assets = DefiningTypeObjectMap.Where(pair => (pair.Key.IfcTypeObject != null) && Equals(pair.Key.IfcTypeObject, typeObject)).SelectMany(p => p.Value);
+               
+                var hashset = new HashSet<TSimpleType>();
+                foreach (var asset in assets)
+                {
+                    if (!_attributedObjects.TryGetValue(asset, out attributedObject))
+                        continue;   // Not a tracked asset
+                    if (propertyNames.Any(propertyName => attributedObject.TryGetAttributeValue(propertyName, out result)))
+                    {
+                        if (Configuration.InferTypePropertiesFromComponents == InferFromComponentMode.FirstComponent)
+                        {
+                            setter(result);
+                            return true;    // Take the first value
+                        }
+
+                        // Else we need an unambiguous result : InferFromComponentMode.UnambiguousComponents
+                        if (hashset.Contains(result))
+                            continue;       // A prior value
+                        hashset.Add(result);
+                        if (hashset.Count > 1)
+                            break;          // Early exit as we have multiple values
+
+                    }
+                }
+                if(hashset.Count == 1)
+                {
+                    setter(result); 
+                    return true;
+                }
+                
+            }
+     
+               
+            return false;
         }
+
 
         /// <summary>
         /// 
@@ -1545,7 +1567,7 @@ namespace Xbim.CobieExpress.Exchanger
             //get all elements that are contained in any spatial structure of this building
             _spaceAssetLookup = new Dictionary<IIfcElement, List<IIfcSpatialElement>>(); 
            
-            var ifcRelContainedInSpaces = _model.Instances.OfType<IIfcRelContainedInSpatialStructure>().ToList();
+            var ifcRelContainedInSpaces = SourceModel1.Instances.OfType<IIfcRelContainedInSpatialStructure>().ToList();
             ReportProgress.NextStage(ifcRelContainedInSpaces.Count, 40);
             foreach (var ifcRelContainedInSpace in ifcRelContainedInSpaces)
             {
@@ -1577,7 +1599,7 @@ namespace Xbim.CobieExpress.Exchanger
             //get all the spatial structural elements which may contain assets
             DecomposeSpatialStructure(ifcBuilding, spatialStructureOfBuilding);
             //get all elements that are contained in the spatial structure of this building
-            var elementsInBuilding = _model.Instances.OfType<IIfcRelContainedInSpatialStructure>()
+            var elementsInBuilding = SourceModel1.Instances.OfType<IIfcRelContainedInSpatialStructure>()
                 .Where(r => spatialStructureOfBuilding.Contains(r.RelatingStructure))
                 .SelectMany(s=>s.RelatedElements.OfType<IIfcElement>()).Distinct();
             //remove
@@ -1604,11 +1626,18 @@ namespace Xbim.CobieExpress.Exchanger
 
 
         /// <summary>
-        /// 
+        /// <para>
+        /// Gets a Property string value frm the <paramref name="ifcObjectDefinition"/> using the COBieMap key <paramref name="valueName"/>
+        /// to identify user supplied properties to look in.
+        /// </para>
+        /// <para>The first non-empty matching property is returned</para>
+        /// <para>If no matches are found, for IfcTypes, the components may also be checked for matching 
+        /// properties based on the setting in <see cref="IfcToCOBieExchangeConfiguration.InferTypePropertiesFromComponents"/>
+        /// </para>
         /// </summary>
-        /// <param name="valueName"></param>
-        /// <param name="ifcObjectDefinition"></param>
-        /// <returns></returns>
+        /// <param name="valueName">The well known config key</param>
+        /// <param name="ifcObjectDefinition">The object to search for properties</param>
+        /// <returns>The string value matching if found; otherwise <c>null</c></returns>
         /// <exception cref="ArgumentException"></exception>
         public string GetCoBieProperty(string valueName, IIfcObjectDefinition ifcObjectDefinition)
         {
@@ -1620,9 +1649,45 @@ namespace Xbim.CobieExpress.Exchanger
                 throw new ArgumentException("Illegal COBie Attribute name:", valueName);
             foreach (var propertyName in propertyNames)
             {
-                string value;
-                if (attributedObject.GetSimplePropertyValue(propertyName, out value))
-                    return value;
+                if (attributedObject.GetSimplePropertyValue(propertyName, out string value))
+                {
+                    return value;   // Standard path exit
+                }
+            }
+
+            if (Configuration.InferTypePropertiesFromComponents != InferFromComponentMode.Disabled && ifcObjectDefinition is IIfcTypeObject typeObject)
+            {
+                // Attempt to get a value from the same Property on the Type's elements/assets
+                var assets = DefiningTypeObjectMap.Where(pair => (pair.Key.IfcTypeObject != null) && Equals(pair.Key.IfcTypeObject, typeObject)).SelectMany(p => p.Value);
+             
+                var hashset = new HashSet<string>();
+                foreach (var asset in assets)
+                {
+                    if (!_attributedObjects.TryGetValue(asset, out attributedObject))
+                        continue;   // Not a tracked asset
+                    foreach (var propertyName in propertyNames)
+                    {
+                        if (attributedObject.GetSimplePropertyValue(propertyName, out string value))
+                        {
+                            if (Configuration.InferTypePropertiesFromComponents == InferFromComponentMode.FirstComponent)
+                            {
+                                return value;    // Take the first value
+                            }
+
+                            // Else we need an unambiguous result : InferFromComponentMode.UnambiguousComponents
+                            if (hashset.Contains(value))
+                                continue;       // A prior value
+                            hashset.Add(value);
+                            if (hashset.Count > 1)
+                                break;          // Early exit as we have multiple values
+                        }
+                    }
+                }
+                if (hashset.Count == 1)
+                {
+                    return hashset.First();
+                }
+                
             }
             return null;
         }
@@ -1636,14 +1701,14 @@ namespace Xbim.CobieExpress.Exchanger
             SundryContacts = new Dictionary<string, CobieContact>();
 
             //get any actors and select their
-            var ifcActors = _model.Instances.OfType<IIfcActor>().ToList();
+            var ifcActors = SourceModel1.Instances.OfType<IIfcActor>().ToList();
             var actors = new HashSet<IIfcActorSelect>(ifcActors.Select(a => a.TheActor)); //unique actors
 
-            var personOrgs =  new HashSet<IIfcActorSelect>(_model.Instances.OfType<IIfcPersonAndOrganization>().Where(p => !actors.Contains(p)));
+            var personOrgs =  new HashSet<IIfcActorSelect>(SourceModel1.Instances.OfType<IIfcPersonAndOrganization>().Where(p => !actors.Contains(p)));
             actors = new HashSet<IIfcActorSelect>(actors.Concat(personOrgs));
 
             var orgAlreadyIn = actors.OfType<IIfcPersonAndOrganization>().Select(po => po.TheOrganization);
-            var orgs = _model.Instances.OfType<IIfcOrganization>().Where(p => !orgAlreadyIn.Contains(p) && p.Addresses != null); //lets only see ones with any address info
+            var orgs = SourceModel1.Instances.OfType<IIfcOrganization>().Where(p => !orgAlreadyIn.Contains(p) && p.Addresses != null); //lets only see ones with any address info
             actors = new HashSet<IIfcActorSelect>(actors.Union(orgs)); //union will exclude duplicates
 
             _actors = new Dictionary<IIfcActorSelect, IIfcActor>();
@@ -1766,7 +1831,7 @@ namespace Xbim.CobieExpress.Exchanger
         {
             if (!string.IsNullOrWhiteSpace(building.Name))
                 return building.Name;
-            var project = _model.Instances.FirstOrDefault<IIfcProject>();
+            var project = SourceModel1.Instances.FirstOrDefault<IIfcProject>();
             if (project != null)
             {
                 if (!string.IsNullOrWhiteSpace(project.Name))
