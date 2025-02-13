@@ -153,7 +153,7 @@ namespace Xbim.CobieExpress.Exchanger
 
         }
 
-        private static int CalculateHash(int current, params IEnumerable<IIfcValue> values)
+        private static int CalculateHash(int current, params IIfcValue[] values)
         {
             return values.Select(v => v?.Value).Aggregate(current, (curr, v) => HashCode.Combine(curr, v));
         }
