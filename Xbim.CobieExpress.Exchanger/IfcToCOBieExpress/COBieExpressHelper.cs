@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Xbim.CobieExpress.Abstractions;
 using Xbim.CobieExpress.Exchanger.EqCompare;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
 using Xbim.Common;
@@ -15,28 +16,7 @@ namespace Xbim.CobieExpress.Exchanger
 {
 
 
-    /// <summary>
-    /// 
-    /// </summary>
-    public enum ExternalReferenceMode
-    {
-        // Output always
-        OutputAll = 0,
-
-        /// <summary>
-        /// Does not write out the External Entity Type Name or the External System Name
-        /// </summary>
-        IgnoreSystemAndEntityName = 3,
-        /// <summary>
-        /// Does not write out the External System Name but does write out the External Entity Type Name
-        /// </summary>
-        IgnoreSystem = 1,
-        /// <summary>
-        /// Does not write out the External Entity Type Name but does write the External System Name
-        /// </summary>
-        IgnoreEntityName = 2
-
-    }
+    
 
     /// <summary>
     /// 
@@ -131,7 +111,22 @@ namespace Xbim.CobieExpress.Exchanger
 
         #region Filters
 
-        private OutputFilters Filter  { get => Configuration.SelectionFilters ?? new OutputFilters(Logger); } 
+        private IOutputFilters Filter
+        {
+            get
+            {
+                if(_filters == null)
+                {
+                    // The builder enables consumers to customise default filters, in cases where they cannot full replace the initial builder.
+                    // e.g. where they don't have a a direct reference to the concrete implementation
+                    var builder = Configuration.SelectionBuilder ?? ((f) => f);
+                    _filters = builder(Configuration.SelectionFilters ?? new OutputFilters(Logger));
+                }
+                return _filters;
+            }
+        }
+
+        private IOutputFilters _filters;
 
         #endregion
 

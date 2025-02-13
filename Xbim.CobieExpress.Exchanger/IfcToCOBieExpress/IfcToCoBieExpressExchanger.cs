@@ -8,10 +8,11 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
+
     /// <summary>
     /// Provide conversion between models in IFC schema to a well defined COBie schema
     /// </summary>
-    public class IfcToCoBieExpressExchanger : XbimExchanger<IModel, ICOBieModel>
+    public class IfcToCoBieExpressExchanger : XbimExchanger<IModel, ICOBieModel>, IIfcToCOBieExpressExchanger
     {
         private readonly ILogger<IfcToCoBieExpressExchanger> logger;
 

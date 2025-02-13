@@ -1,6 +1,7 @@
-﻿using Xbim.CobieExpress.Exchanger.FilterHelper;
+﻿using System;
+using Xbim.CobieExpress.Abstractions;
+using Xbim.CobieExpress.Exchanger.FilterHelper;
 using Xbim.Common;
-using Xbim.Common.Configuration;
 
 namespace Xbim.CobieExpress.Exchanger
 {
@@ -10,9 +11,14 @@ namespace Xbim.CobieExpress.Exchanger
     public class IfcToCOBieExchangeConfiguration
     {
         /// <summary>
-        /// Gets and sets the filters used to select / filter the relevant IFC entities for the given role
+        /// Gets and sets the default filters used to select / filter the relevant IFC entities for the given role
         /// </summary>
-        public OutputFilters SelectionFilters { get; set; } = OutputFilters.GetDefaults(RoleFilter.Unknown, XbimServices.Current.CreateLogger<OutputFilters>());
+        public IOutputFilters SelectionFilters { get; set; }
+
+        /// <summary>
+        /// Allow any filters to be inspected or manipulated before conversion
+        /// </summary>
+        public Func<IOutputFilters, IOutputFilters> SelectionBuilder { get; set; } = (f) => { f.LoadFilter(RoleFilter.Default); return f; };
 
         /// <summary>
         /// Path to an Attribute Configuration allowing the mapping of IFC Properties to designed COBie Attributes
@@ -74,6 +80,68 @@ namespace Xbim.CobieExpress.Exchanger
         /// </summary>
         UnambiguousComponents
 
+
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public enum EntityIdentifierMode
+    {
+        /// <summary>
+        /// Use the Entity Label in the Ifc file (e.g. #23)
+        /// </summary>
+        IfcEntityLabels = 0,
+        /// <summary>
+        /// Use the GlobalId of the Entity (e.g. "10mjSDZJj9gPS2PrQaxa3z")
+        /// </summary>
+        GloballyUniqueIds = 1,
+        /// <summary>
+        /// Does not write any External Identifier for Entities
+        /// </summary>
+        None = 2
+    }
+
+    /// <summary>
+    /// Control what we extract from IFC as systems
+    /// </summary>
+    [Flags]
+    public enum SystemExtractionMode
+    {
+        /// <summary>
+        /// Identify System from IfcSystems
+        /// </summary>
+        System = 0x1, //default and should always be set
+        /// <summary>
+        /// Identify Systems with properties defined in 'SystemMaps' config
+        /// </summary>
+        PropertyMaps = 0x2, //include properties as set by GetPropMap("SystemMaps")
+        /// <summary>
+        /// Include Types in System listings
+        /// </summary>
+        Types = 0x4, //include types as system listing all defined objects in componentnsnames
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public enum ExternalReferenceMode
+    {
+        // Output always
+        OutputAll = 0,
+
+        /// <summary>
+        /// Does not write out the External Entity Type Name or the External System Name
+        /// </summary>
+        IgnoreSystemAndEntityName = 3,
+        /// <summary>
+        /// Does not write out the External System Name but does write out the External Entity Type Name
+        /// </summary>
+        IgnoreSystem = 1,
+        /// <summary>
+        /// Does not write out the External Entity Type Name but does write the External System Name
+        /// </summary>
+        IgnoreEntityName = 2
 
     }
 }
