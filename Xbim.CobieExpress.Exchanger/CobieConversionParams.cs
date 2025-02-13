@@ -10,7 +10,7 @@ namespace Xbim.CobieExpress.Exchanger
     public class CobieConversionParams
     {
         public IModel Source { get; set; }
-        public Func<IModel> NewCobieModel { get; set; }
+        public Func<ICOBieModel> NewCobieModel { get; set; }
         public EntityIdentifierMode ExtId { get; set; }
         public SystemExtractionMode SysMode { get; set; }
         public OutputFilters Filter { get; set; }

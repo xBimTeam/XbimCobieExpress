@@ -6,7 +6,7 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal class MappingIfcClassificationReferenceToCategory: XbimMappings<IModel, IModel, string, IIfcClassificationReference, CobieCategory>
+    internal class MappingIfcClassificationReferenceToCategory: XbimMappings<IModel, ICOBieModel, string, IIfcClassificationReference, CobieCategory>
     {
         private MappingIfcClassificationToCobieClassification _classificationMapping;
 

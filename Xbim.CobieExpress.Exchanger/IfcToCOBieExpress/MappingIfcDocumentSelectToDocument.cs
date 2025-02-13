@@ -9,7 +9,7 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal class MappingIfcDocumentSelectToDocument : XbimMappings<IModel, IModel, int, IIfcDocumentSelect, List<CobieDocument>> 
+    internal class MappingIfcDocumentSelectToDocument : XbimMappings<IModel, ICOBieModel, int, IIfcDocumentSelect, List<CobieDocument>> 
     {
 
         /// <summary>

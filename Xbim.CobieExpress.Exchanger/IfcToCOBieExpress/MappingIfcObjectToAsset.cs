@@ -5,7 +5,7 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal abstract class MappingIfcObjectToAsset<TIfc, TCobie> : XbimMappings<IModel, IModel, int, TIfc, TCobie>
+    internal abstract class MappingIfcObjectToAsset<TIfc, TCobie> : XbimMappings<IModel, ICOBieModel, int, TIfc, TCobie>
         where TIfc : IIfcObjectDefinition
         where TCobie : CobieAsset
     {

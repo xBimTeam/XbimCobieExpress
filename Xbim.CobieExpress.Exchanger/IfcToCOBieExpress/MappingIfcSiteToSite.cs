@@ -5,7 +5,7 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal class MappingIfcSiteToSite : XbimMappings<IModel, IModel, int, IIfcSite, CobieSite>
+    internal class MappingIfcSiteToSite : XbimMappings<IModel, ICOBieModel, int, IIfcSite, CobieSite>
     {
         protected override CobieSite Mapping(IIfcSite ifcSite, CobieSite site)
         {

@@ -8,7 +8,7 @@ using Xbim.Ifc4.Interfaces;
 namespace Xbim.CobieExpress.Exchanger
 {
 
-    internal class MappingIfcActorToContact : XbimMappings<IModel, IModel, string, IIfcActorSelect, CobieContact>
+    internal class MappingIfcActorToContact : XbimMappings<IModel, ICOBieModel, string, IIfcActorSelect, CobieContact>
     {
         private COBieExpressHelper _helper;
 
