@@ -17,7 +17,7 @@ namespace Xbim.CobieExpress.Exchanger.Classifications
         private const string NBSReferenceName = "NBS Reference (Inferred)";
         private const string NRMReferenceName = "NRM Reference (Inferred)";
 
-        public Classifier(XbimExchanger<IModel, IModel> exchanger)
+        public Classifier(XbimExchanger<IModel, ICOBieModel> exchanger)
         {
             _classificationReferenceToCategory =
                 exchanger.GetOrCreateMappings<MappingIfcClassificationReferenceToCategory>();

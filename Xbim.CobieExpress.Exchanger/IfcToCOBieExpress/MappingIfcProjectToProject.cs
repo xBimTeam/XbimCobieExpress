@@ -5,7 +5,7 @@ using Xbim.Ifc4.Interfaces;
 
 namespace Xbim.CobieExpress.Exchanger
 {
-    internal class MappingIfcProjectToProject : XbimMappings<IModel, IModel, int, IIfcProject, CobieProject>
+    internal class MappingIfcProjectToProject : XbimMappings<IModel, ICOBieModel, int, IIfcProject, CobieProject>
     {
         protected override CobieProject Mapping(IIfcProject source, CobieProject target)
         {

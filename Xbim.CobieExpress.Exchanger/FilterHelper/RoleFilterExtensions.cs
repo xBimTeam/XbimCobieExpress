@@ -17,6 +17,8 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             int flagsSet = 0;
             foreach (RoleFilter flag in Enum.GetValues(typeof(RoleFilter)))
             {
+                if (flag == RoleFilter.Default) continue;
+
                 if(filter.HasFlag(flag))
                 {
                     flagsSet++;

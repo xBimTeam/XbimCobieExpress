@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Xml.Serialization;
 using Xbim.CobieExpress.Abstractions;
 using Xbim.Common;
@@ -13,10 +14,16 @@ using Xbim.Ifc4.Interfaces;
 namespace Xbim.CobieExpress.Exchanger.FilterHelper
 {
 
-    public class OutputFilters : IOutputFilters
+    /// <summary>
+    /// Default implementation of <see cref="IOutputFilters"/> using 
+    /// System Configuration files as a storage format
+    /// </summary>
+    public class OutputFilters : IOutputFilters, IDisposable
     {
         private readonly ILogger _log;
+        private bool disposedValue;
 
+        private List<string> _filesToCleanup = new List<string>();
         #region Properties
 
         /// <summary>
@@ -140,11 +147,11 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
 
         public OutputFilters(ILogger logger, RoleFilter roleFlags) : this(logger)
         {
-            AppliedRoles = roleFlags;
             if (roleFlags.HasMultipleFlags())
             {
                 throw new InvalidOperationException("Cannot construct with multiple roles. Use OutputFilters.Merge to add additional roles");
             }
+            AppliedRoles = roleFlags;
             FiltersHelperInit(roleFlags.ToResourceName());
         }
 
@@ -176,7 +183,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         }
 
         /// <summary>
-        /// Will read Configuration file if passed, or default COBieAttributesFilters.config
+        /// Will read Configuration file if passed, or default COBieDefaultFilters.config
         /// </summary>
         /// <param name="configFileName">Full path/name for config file</param>
         /// <param name="import"></param>
@@ -185,7 +192,23 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             //set default
             var sourceFile = configFileName ?? RoleFilter.Unknown.ToResourceName();
             var config = GetConfig(sourceFile);
+            LoadConfiguration(import, config);
+        }
 
+        /// <summary>
+        /// Will read Configuration file if passed, or default COBieDefaultFilters.config
+        /// </summary>
+        /// <param name="configFileName">Full path/name for config file</param>
+        /// <param name="import"></param>
+        private void FiltersHelperInit(Stream configFileName, ImportSet import = ImportSet.All)
+        {
+            //set default
+            var config = GetConfig(configFileName);
+            LoadConfiguration(import, config);
+        }
+
+        private void LoadConfiguration(ImportSet import, Configuration config)
+        {
             //IfcProduct and IfcTypeObject filters
             if (import == ImportSet.All || import == ImportSet.IfcFilters)
             {
@@ -206,9 +229,6 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 ComponentFilter = new PropertyFilter(config.GetSection("ComponentFilter"));
                 CommonFilter = new PropertyFilter(config.GetSection("CommonFilter"));
             }
-            // API restructure:
-            // a call to File.Delete(config.FilePath); has been removed
-            // it is strange for the configuration reading routine to delete a configuration file
         }
 
         /// <summary>
@@ -222,33 +242,50 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             if (!File.Exists(fileOrResourceName))
             {
                 // try to save resource to temporary file
-
-                var asss = global::System.Reflection.Assembly.GetExecutingAssembly();
-                using (var input = asss.GetManifestResourceStream(fileOrResourceName))
+                var thisAssembly = global::System.Reflection.Assembly.GetExecutingAssembly();
+                using (var inputStream = thisAssembly.GetManifestResourceStream(fileOrResourceName))
                 {
-                    if (input == null)
-                    {
-                        _log.LogError("Could not load configuration file: {0}.", fileOrResourceName);
-                        return null;
-                    }
-                    var tmpFile = Path.GetTempPath() + Guid.NewGuid() + ".tmp";
-                    using (var output = File.Create(tmpFile))
-                    {
-                        input.CopyTo(output);
-                    }
-                    fileOrResourceName = tmpFile;
+                    return GetConfig(inputStream);
                 }
             }
 
+            return ReadConfigFile(fileOrResourceName);
+        }
+
+        /// <summary>
+        /// Get Configuration from the supplied stream, copying to a temporary file first
+        /// </summary>
+        /// <remarks>The file is removed on disposal</remarks>
+        /// <param name="stream"></param>
+        /// <returns></returns>
+        private Configuration GetConfig(Stream stream)
+        {
+            if (stream == null)
+            {
+                _log.LogError("Could not load configuration file: {0}.", stream);
+                return null;
+            }
+            var tmpFile = Path.GetTempPath() + Guid.NewGuid() + ".tmp";
+            using (var fileStream = File.Create(tmpFile))
+            {
+                stream.CopyTo(fileStream);
+            }
+            _filesToCleanup.Add(tmpFile);
+
+            return ReadConfigFile(tmpFile);
+        }
+
+        private Configuration ReadConfigFile(string tmpFile)
+        {
             Configuration config;
             try
             {
-                var configMap = new ExeConfigurationFileMap { ExeConfigFilename = fileOrResourceName };
+                var configMap = new ExeConfigurationFileMap { ExeConfigFilename = tmpFile };
                 config = ConfigurationManager.OpenMappedExeConfiguration(configMap, ConfigurationUserLevel.None);
             }
             catch (Exception ex)
             {
-                var message = string.Format(@"Error loading configuration file '{0}'.", fileOrResourceName);
+                var message = string.Format(@"Error loading configuration file '{0}'.", tmpFile);
                 _log.LogError(message, ex);
                 throw;
             }
@@ -277,6 +314,42 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             CommonFilter.Copy(copyFilter.CommonFilter);
         }
 
+
+        public void LoadFilter(Stream fileStream, RoleFilter roleFilter)
+        {
+            if (roleFilter.HasMultipleFlags())
+            {
+                throw new InvalidOperationException("Cannot construct with multiple roles. Use OutputFilters.Merge to add additional roles");
+            }
+            AppliedRoles = roleFilter;
+            
+            FiltersHelperInit(fileStream);
+        }
+
+        public void LoadFilter(RoleFilter roleFlags, string filterFile = null)
+        {
+            if (roleFlags.HasMultipleFlags())
+            {
+                throw new InvalidOperationException("Cannot construct with multiple roles. Use OutputFilters.Merge to add additional roles");
+            }
+            AppliedRoles = roleFlags;
+            if(string.IsNullOrEmpty(filterFile))
+            {
+                FiltersHelperInit(roleFlags.ToResourceName());
+            }
+            else
+            {
+                if(File.Exists(filterFile))
+                {
+                    FiltersHelperInit(filterFile);
+                }
+                else
+                {
+                    _log.LogError("Could not load configuration file: {0}. Using Default", filterFile);
+                    FiltersHelperInit(roleFlags.ToResourceName());
+                }
+            }
+        }
 
         /// <summary>
         /// Clear OutputFilters
@@ -616,6 +689,39 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                 result = (OutputFilters)writer.Deserialize(file, typeof(OutputFilters));
             }
             return result;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    if (_filesToCleanup != null)
+                    {
+                        foreach (var file in _filesToCleanup)
+                        {
+                            try
+                            {
+                                if(File.Exists(file))
+                                    File.Delete(file);
+                            }
+                            catch { }
+                        }
+                    }
+                    _filesToCleanup.Clear();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
         #endregion
