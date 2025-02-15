@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Xbim.CobieExpress.Abstractions;
 using Xbim.CobieExpress.Exchanger.FilterHelper;
 using Xbim.Common;
@@ -21,11 +22,11 @@ namespace Xbim.CobieExpress.Exchanger
         public Func<IOutputFilters, IOutputFilters> SelectionBuilder { get; set; } = (f) => { f.LoadFilter(RoleFilter.Default); return f; };
 
         /// <summary>
-        /// Path to an Attribute Configuration allowing the mapping of IFC Properties to designed COBie Attributes
+        /// Path to an Attribute Configuration allowing the mapping of IFC Properties to well known COBie Attributes
         /// </summary>
         /// <remarks>
         /// If null, defaults to <c>COBieAttributes.config</c> embedded in the Exchanger</remarks>
-        public string AttributeMappingFile { get; set; }
+        public AttributeMappingConfig AttributeMapping { get; } = new AttributeMappingConfig();
 
         /// <summary>
         /// A delegate to receive progress updates
@@ -58,6 +59,41 @@ namespace Xbim.CobieExpress.Exchanger
         /// Controls which External Systems data is exported
         /// </summary>
         public ExternalReferenceMode ExternalReferenceMode { get; set; } = ExternalReferenceMode.OutputAll;
+
+        /// <summary>
+        /// Sets a Config File for property mapping
+        /// </summary>
+        /// <param name="configFilePath"></param>
+        /// <returns></returns>
+        public IfcToCOBieExchangeConfiguration SetMappingConfigFile(string configFilePath)
+        {
+            AttributeMapping.ConfigFilePath = configFilePath;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets a Config Streamm to a file containing property mappings
+        /// </summary>
+        /// <param name="configStream"></param>
+        /// <returns></returns>
+        public IfcToCOBieExchangeConfiguration SetMappingConfigStream(Stream configStream)
+        {
+            AttributeMapping.ConfigStream = configStream;
+            return this;
+        }
+
+        public class AttributeMappingConfig
+        {
+            /// <summary>
+            /// Path to the config file
+            /// </summary>
+            public string ConfigFilePath { get; set; }
+
+            /// <summary>
+            /// A stream containing the configFile
+            /// </summary>
+            public Stream ConfigStream { get; set; }
+        }
     }
 
     /// <summary>

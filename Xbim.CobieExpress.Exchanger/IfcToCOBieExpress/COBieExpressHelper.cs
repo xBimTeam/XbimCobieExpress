@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Xbim.CobieExpress.Abstractions;
@@ -797,35 +798,44 @@ namespace Xbim.CobieExpress.Exchanger
 
         private void LoadCobieMaps()
         {
-            var tmpFile = Configuration.AttributeMappingFile;
-            if (Configuration.AttributeMappingFile == null)
+            var tmpConfigFile = Configuration.AttributeMapping.ConfigFilePath;
+            if (tmpConfigFile == null)
             {
-                tmpFile = Path.GetTempPath() + Guid.NewGuid().ToString() + ".csv";
-
-                var asss = global::System.Reflection.Assembly.GetExecutingAssembly();
-
-                using (var input = asss.GetManifestResourceStream(asss.GetName().Name + ".COBieAttributes.config"))
-                using (var output = File.Create(tmpFile))
+                tmpConfigFile = Path.GetTempPath() + Guid.NewGuid().ToString() + ".xml";
+                using FileStream fileStream = File.Create(tmpConfigFile);
+                if (Configuration.AttributeMapping.ConfigStream != null)
                 {
-                    if (input != null) input.CopyTo(output);
-                    else Logger.LogWarning("Failed to load default attributes configuration");
+                    // Save stream to temp File. Legacy config files have to be read from disk
+                    Configuration.AttributeMapping.ConfigStream.CopyTo(fileStream);
                 }
+                else
+                {
+                    // unpack embedded default config to disk
+                    var assembly = global::System.Reflection.Assembly.GetExecutingAssembly();
+
+                    using (Stream input = assembly.GetManifestResourceStream(assembly.GetName().Name + ".COBieAttributes.config"))
+
+                        if (input != null)
+                            input.CopyTo(fileStream);
+                        else Logger.LogWarning("Failed to load default attributes configuration");
+                }
+                fileStream.Close();
             }
-                        
-            if (!File.Exists(tmpFile) || new FileInfo(tmpFile).Length == 0)
+            if (!File.Exists(tmpConfigFile) || new FileInfo(tmpConfigFile).Length == 0)
             {
                 var directory = new DirectoryInfo(".");
                 throw new Exception(
                     string.Format(
-                        @"Error loading configuration file ""{0}"". App folder is ""{1}"".", tmpFile,
+                        @"Error loading configuration file ""{0}"". App folder is ""{1}"".", tmpConfigFile,
                         directory.FullName)
                     );
             }
 
             //using COBiePropertyMapping to set properties, might pass this into function, but for now read file passed file name, or default
-            _cobiePropertyMaps = new CobiePropertyMapping(new FileInfo(tmpFile));            
-            if (Configuration.AttributeMappingFile == null)
-                File.Delete(tmpFile);
+            _cobiePropertyMaps = new CobiePropertyMapping(new FileInfo(tmpConfigFile));        
+            // delete any temp config
+            if (Configuration.AttributeMapping.ConfigFilePath == null)
+                File.Delete(tmpConfigFile);
         }
 
         private void GetPropertySets()

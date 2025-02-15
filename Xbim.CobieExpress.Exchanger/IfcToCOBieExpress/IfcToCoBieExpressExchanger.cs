@@ -51,12 +51,13 @@ namespace Xbim.CobieExpress.Exchanger
             {
                 ReportProgressDelegate = reportProgress,
                 SelectionFilters = filter,
-                AttributeMappingFile = configFile,
+                
                 ExternalIdentifierSource = extId,
                 SystemExtractionMode = sysMode,
                 Classify = classify
 
             };
+            config.AttributeMapping.ConfigFilePath = configFile;
             Initialise(config, source, target);
         }
 
