@@ -82,11 +82,11 @@ namespace Xbim.CobieExpress.Tests
             using (var txn = cobie.BeginTransaction("Sample house conversion"))
             {
                 var exchanger = new IfcToCoBieExpressExchanger(default);
-                var configuration = new IfcToCOBieExchangeConfiguration
+                var configuration = new IfcToCOBieExchangeConfiguration()
                 {
-                    AttributeMappingFile = @"TestFiles\CustomCOBieAttributes.config",
                     InferTypePropertiesFromComponents = InferFromComponentMode.UnambiguousComponents
-                };
+                }
+                .SetMappingConfigFile(@"TestFiles\CustomCOBieAttributes.config");
                 exchanger.Initialise(configuration, ifc, cobie);
                 w.Start();
                 exchanger.Convert();
@@ -105,6 +105,39 @@ namespace Xbim.CobieExpress.Tests
             using var templateStream = File.Open(@"TestFiles\COBie_UK_UniclassTemplate.xlsx", FileMode.Open, FileAccess.Read);
             output = Path.ChangeExtension(input +"-output", ".xlsx");
             cobie.ExportToTable(output, out string report, CobieModel.GetMapping(), templateStream);
+        }
+
+        [Theory]
+        [InlineData(@"TestFiles\TestFile.ifc")]
+       // [InlineData(@"TestFiles\SampleHouse4.ifc")]
+        public void ConvertIfcToCoBieExpressWithConfigStream(string input)
+        {
+            var inputInfo = new FileInfo(input);
+
+
+            using var configStream = File.OpenRead(@"TestFiles\CustomCOBieAttributes.config");
+            var ifc = IO.Memory.MemoryModel.OpenReadStep21(input);
+            var inputCount = ifc.Instances.Count;
+
+            var cobie = new CobieModel();
+            using (var txn = cobie.BeginTransaction("Sample house conversion"))
+            {
+                var exchanger = new IfcToCoBieExpressExchanger(default);
+                var configuration = new IfcToCOBieExchangeConfiguration()
+                {
+                    InferTypePropertiesFromComponents = InferFromComponentMode.UnambiguousComponents
+                }.SetMappingConfigStream(configStream)
+                ;
+                exchanger.Initialise(configuration, ifc, cobie);
+                exchanger.Convert();
+                txn.Commit();
+            }
+
+            console.WriteLine("Time to convert {0:N}MB file ({1} entities from {2})", inputInfo.Length / 1e6f, cobie.Instances.Count, inputCount);
+            cobie.Instances.OfType<CobieType>().Should().AllSatisfy(s =>
+            {
+                s.ReplacementCost.Should().BePositive();    // requires Custom mapping to read from COBie_EconomicalImpactValues.ReplacementCost
+            });
         }
 
 
