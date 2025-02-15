@@ -93,6 +93,27 @@ namespace Xbim.CobieExpress.Tests
         }
 
         [Fact]
+        public void Can_ReenableFlags_retrospectively()
+        {
+            using var model = new MemoryModel(new Ifc2x3.EntityFactoryIfc2x3());
+            using var txn = model.BeginTransaction("");
+            var filters = new OutputFilters(logger, RoleFilter.Default);
+
+            IfcObjectDefinition target = model.Instances.New<IfcWall>();
+
+            filters.ObjFilter(target, true).Should().BeTrue("Walls are filtered by default");
+            // Act
+            filters.IfcProductFilter.Items["IFCWALL"] = true;
+            filters.IfcTypeObjectFilter.Items["IFCWALLTYPE"] = true;
+            filters.IfcProductFilter.Rebuild();
+            filters.IfcTypeObjectFilter.Rebuild();
+
+            // Assert
+            filters.ObjFilter(target, true).Should().BeFalse("Walls are not filtered");
+        }
+
+
+        [Fact]
         public void Merging_Is_Additive()
         {
             // Repeat the standard test in reverse. You can't turn off a filter that's already true
