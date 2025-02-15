@@ -228,9 +228,14 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         /// </summary>
         public void Clear()
         {
-            _itemsToExclude = null; //reset exclude
             Items.Clear();
             PreDefinedType.Clear();
+            Rebuild();
+        }
+
+        public void Rebuild()
+        {
+            _itemsToExclude = null; //reset exclude
         }
 
         #endregion
