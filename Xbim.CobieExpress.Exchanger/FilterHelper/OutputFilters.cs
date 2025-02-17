@@ -315,7 +315,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
         }
 
 
-        public void LoadFilter(Stream fileStream, RoleFilter roleFilter)
+        public IOutputFilters LoadFilter(Stream fileStream, RoleFilter roleFilter)
         {
             if (roleFilter.HasMultipleFlags())
             {
@@ -324,9 +324,10 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
             AppliedRoles = roleFilter;
             
             FiltersHelperInit(fileStream);
+            return this;
         }
 
-        public void LoadFilter(RoleFilter roleFlags, string filterFile = null)
+        public IOutputFilters LoadFilter(RoleFilter roleFlags, string filterFile = null)
         {
             if (roleFlags.HasMultipleFlags())
             {
@@ -349,6 +350,7 @@ namespace Xbim.CobieExpress.Exchanger.FilterHelper
                     FiltersHelperInit(roleFlags.ToResourceName());
                 }
             }
+            return this;
         }
 
         /// <summary>

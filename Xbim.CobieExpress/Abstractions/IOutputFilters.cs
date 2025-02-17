@@ -40,14 +40,14 @@ namespace Xbim.CobieExpress.Abstractions
         /// <remarks>Overwrites any prior Filter</remarks>
         /// <param name="role"></param>
         /// <param name="filterFile">Optional filePath</param>
-        void LoadFilter(RoleFilter role, string filterFile = null);
+        IOutputFilters LoadFilter(RoleFilter role, string filterFile = null);
         /// <summary>
         /// Loads a new filter for a Role from the supplied Stream
         /// </summary>
         /// <remarks>Overwrites any prior Filter</remarks>
         /// <param name="filterStream"></param>
         /// <param name="role"></param>
-        void LoadFilter(Stream filterStream, RoleFilter role);
+        IOutputFilters LoadFilter(Stream filterStream, RoleFilter role);
         IOutputFilters GetRoleFilter(RoleFilter role);
 
         bool IsEmpty();
