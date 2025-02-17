@@ -154,6 +154,7 @@ namespace Xbim.IO.Table
                 spreadsheetDocument = SpreadsheetDocument.Create(stream, SpreadsheetDocumentType.Workbook);
             }
 
+
             WorkbookPart workbookPart = spreadsheetDocument.GetOrCreatePart(d => d.AddWorkbookPart(), d => d.WorkbookPart);
             
             if (workbookPart.Workbook == null)
@@ -183,10 +184,12 @@ namespace Xbim.IO.Table
                 workbookPart.Workbook.CalculationProperties.FullCalculationOnLoad = true;
             }
 
+#if DEBUG
             // Validate
             var validator = new OpenXmlValidator();
             var err = validator.Validate(spreadsheetDocument);
-
+            Debug.Assert(err.Count() == 0, "Invalid schema gnerated", err.FirstOrDefault()?.Description);
+#endif
 
             //write to output stream
             spreadsheetDocument.Save();
@@ -334,7 +337,7 @@ namespace Xbim.IO.Table
                 var copy = CopyRow(multiRow, rowNum);
                 if (copy != null)
                 {
-                    SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
+                    SheetData sheetData = worksheetPart.Worksheet.GetOrCreateWorksheetChildCollection<SheetData>();
                     sheetData.Append(copy);
                 }
                 SerialiseCell(copy, value, multiMapping, worksheetPart);
@@ -758,7 +761,7 @@ namespace Xbim.IO.Table
 
         private Row GetRow(WorksheetPart worksheetPart, string sheetName)
         {
-            SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
+            SheetData sheetData = worksheetPart.Worksheet.GetOrCreateWorksheetChildCollection<SheetData>();
             //get the next row in rowNumber is less than 1 or use the argument to get or create new row
             uint lastIndex;
             if (!_rowNumCache.TryGetValue(sheetName, out lastIndex))
@@ -799,7 +802,7 @@ namespace Xbim.IO.Table
 
         private static Row GetNextEmptyRow(WorksheetPart worksheetPart)
         {
-            SheetData sheetData = worksheetPart.Worksheet.Elements<SheetData>().First();
+            SheetData sheetData = worksheetPart.Worksheet.GetOrCreateWorksheetChildCollection<SheetData>();
             int lastIndex = 0;
             foreach (Row row in sheetData.Elements<Row>())
             {
@@ -821,8 +824,31 @@ namespace Xbim.IO.Table
 
         private void SetUpHeader(WorksheetPart sheetPart, WorkbookPart workbook, ClassMapping classMapping)
         {
-            SheetData sheetData = sheetPart.Worksheet.Elements<SheetData>().First();
-            //var workbook = sheetPart.Workbook;
+            // Ordering of ChildItems within a Worksheet is important. Invalid ordering leads to xlsx corruption warning (and will fail debug builds)
+            // See https://stackoverflow.com/a/38759611/5168875 for fuller details, but for our purposes order is: sheetviews, cols, sheetData, autofilter, dataValidations
+            // GetOrCreateWorksheetChildCollection handles this sequencing for us
+
+            SheetData sheetData = sheetPart.Worksheet.GetOrCreateWorksheetChildCollection<SheetData>();
+            var worksheet = sheetPart.Worksheet;
+            if (worksheet.SheetViews == null)
+            {
+             
+                worksheet.SheetViews = sheetPart.Worksheet.GetOrCreateWorksheetChildCollection<SheetViews>();
+                SheetView sheetView = worksheet.SheetViews.AppendChild(new SheetView() { WorkbookViewId = (UInt32Value)0U});
+
+                var selection = new Selection() { Pane = PaneValues.TopRight, ActiveCell="A2" };
+                sheetView.AppendChild(selection);
+                Pane freezePane = new Pane()
+                {
+                    HorizontalSplit=1,
+                    VerticalSplit=1,
+                    TopLeftCell = @"B2",
+                    ActivePane = PaneValues.BottomRight,
+                    State = PaneStateValues.Frozen
+                };
+                sheetView.InsertBefore(freezePane, selection);
+            }
+            
             var row = sheetData?.Elements<Row>()?.FirstOrDefault();
             if (row is null)
             {
@@ -832,14 +858,6 @@ namespace Xbim.IO.Table
             InitMappingColumns(classMapping);
             CacheColumnIndices(classMapping);
 
-            //freeze header row
-            //SheetViews sheetViews = new SheetViews();
-            //SheetView sheetView = new SheetView();
-            //Pane pane = new Pane() { VerticalSplit = 0, HorizontalSplit = 1, TopLeftCell = "A1", ActivePane = PaneValues.BottomLeft, State = PaneStateValues.Frozen };
-
-            //sheetView.Append(pane);
-            //sheetViews.Append(sheetView);
-            //sheetPart.Worksheet.Append(sheetViews);
 
             //create header and column style for every mapped column
             foreach (var mapping in classMapping.PropertyMappings)
@@ -860,13 +878,7 @@ namespace Xbim.IO.Table
                 //set default column style if not defined but available
                 if (mapping.Status == DataStatus.None) continue;
 
-                Columns columns = sheetPart.Worksheet.GetFirstChild<Columns>();
-
-                if (columns == null)
-                {
-                    columns = new Columns();
-                    sheetPart.Worksheet.InsertAt(columns, 0);
-                }
+                Columns columns = sheetPart.Worksheet.GetOrCreateWorksheetChildCollection<Columns>();
 
                 Column column = columns.Elements<Column>().FirstOrDefault(c => c.Min == GetColumnIndexFromString(mapping.Column) && c.Max == mapping.ColumnIndex);
 
@@ -899,17 +911,10 @@ namespace Xbim.IO.Table
             //set up filter
             var lastPropMap = classMapping.PropertyMappings.OrderBy(p => p.ColumnIndex).LastOrDefault();
 
-            AutoFilter autoFilter = new AutoFilter { Reference = new StringValue($"A1:{lastPropMap.Column}1") };
+            AutoFilter autoFilter = sheetPart.Worksheet.GetOrCreateWorksheetChildCollection<AutoFilter>();
 
-            // Check if AutoFilter exists, if not, add it
-            if (sheetPart.Worksheet.Elements<AutoFilter>().FirstOrDefault() == null)
-            {
-                sheetPart.Worksheet.InsertAfter(autoFilter, sheetData);
-            }
-            else // If AutoFilter exists, update its reference
-            {
-                sheetPart.Worksheet.Elements<AutoFilter>().First().Reference = autoFilter.Reference;
-            }
+            autoFilter.Reference = new StringValue($"A1:{lastPropMap.Column}1");
+
         }
 
         private static void DefineNamedKeys(WorkbookPart workbook, ClassMapping classMapping, PropertyMapping mapping)
@@ -944,9 +949,7 @@ namespace Xbim.IO.Table
                 var columnName = lookupParts[1];
 
                 var workSheet = sheetPart.Worksheet;
-                DataValidations dataValidations = workSheet.GetOrCreate(
-                        c => c.InsertBefore(new DataValidations(), workSheet.Descendants<PageMargins>().FirstOrDefault()),
-                        getter => getter.GetFirstChild<DataValidations>());
+                DataValidations dataValidations = workSheet.GetOrCreateWorksheetChildCollection<DataValidations>();
                 var appliesToRange = $"{mapping.Column}:{mapping.Column}";
 
                 DataValidation dataValidation = new DataValidation()
@@ -1250,7 +1253,7 @@ namespace Xbim.IO.Table
                 }
 
                 WorksheetPart worksheetPart = workbook.AddNewPart<WorksheetPart>();
-                worksheetPart.Worksheet = new Worksheet(new SheetData());
+                worksheetPart.Worksheet = new Worksheet();
 
                 // Add a new sheet to the workbook
                 sheet = new Sheet() { Id = workbook.GetIdOfPart(worksheetPart), SheetId = count, Name = name };

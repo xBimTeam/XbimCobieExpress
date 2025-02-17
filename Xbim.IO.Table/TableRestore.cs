@@ -127,7 +127,7 @@ namespace Xbim.IO.Table
                     m => string.Equals(sheetName, m.TableName, StringComparison.OrdinalIgnoreCase));
             if (mapping == null)
                 return;
-            SheetData sheetData = sheet.Worksheet.Elements<SheetData>().First();
+            SheetData sheetData = sheet.Worksheet.GetOrCreateWorksheetChildCollection<SheetData>();
             AdjustMapping(sheetData, mapping);
             CacheColumnIndices(mapping);
             var context = GetReferenceContext(mapping);
@@ -170,7 +170,7 @@ namespace Xbim.IO.Table
         {
 
 
-            SheetData sheetData = sheetPart.Worksheet.Elements<SheetData>().First();
+            SheetData sheetData = sheetPart.Worksheet.GetOrCreateWorksheetChildCollection<SheetData>();
             //if there is only header in a sheet, don't waste resources
             if (sheetData.Elements<Row>().LastOrDefault().RowIndex < 2)
                 return;
