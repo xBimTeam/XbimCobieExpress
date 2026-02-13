@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Xbim.Ifc" Version="6.0.574" />
+    <PackageReference Include="Xbim.Ifc" Version="6.0.578" />
   </ItemGroup>
 
   <ItemGroup>

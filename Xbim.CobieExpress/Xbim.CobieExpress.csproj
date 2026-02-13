@@ -10,7 +10,7 @@
     <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Xbim.Common" Version="6.0.574" />
+    <PackageReference Include="Xbim.Common" Version="6.0.578" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
